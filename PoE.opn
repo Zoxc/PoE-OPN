@@ -1,0 +1,168 @@
+module PoE with BinaryEncodingDefaults{Endian = Endian.Big};
+
+using Standard;
+using TCP;
+using Utility;
+using IPv4;
+
+type BoolWrapper
+{
+	bool Value;
+}
+
+type ProtocolHandler
+{
+	any message(stream, BoolWrapper) Decode;
+	void(bool, any message) Dispatch;
+}
+
+type DecodingBuffer
+{
+	bool Input;
+    binary Buffer;
+    array<long> Segments = [];
+    array<any message> Messages = [];
+	long SegmentOffset = 0;
+	ProtocolHandler Handler;
+	
+	void DeleteFirstSegment()
+	{
+		array<long> new_array = [];
+		bool add = false;
+		
+		foreach (var i in Segments)
+		{
+			if(add)
+				new_array += [i];
+				
+			add = true;
+		}
+		
+		Segments = new_array;
+	}
+	
+	bool FirstSegmentUsed()
+	{
+		if (Segments.Count < 1)
+			return false;
+			
+		return SegmentOffset >= Segments[0];
+	}
+	
+	void RemoveUsedSegments()
+	{
+		while (FirstSegmentUsed())
+		{
+			SegmentOffset -= Segments[0];
+			DeleteFirstSegment();
+		}
+	}
+	
+	void Add(TCP.VirtualDataSegment segment)
+	{
+		Buffer += segment.Payload;
+        Segments += [segment.Payload.ByteLength];
+        Messages += [segment];
+		
+		while ((Buffer != null) && (Buffer.ByteLength >= 1))
+		{
+			stream Stream = Buffer;
+			var Unsized = new BoolWrapper{Value = false};
+			any message msg = Handler.Decode(Stream, Unsized);
+			
+			if (msg != null)
+			{
+				SegmentOffset += Stream.BytePosition;
+				
+				RemoveUsedSegments();
+				
+				if (Unsized.Value && (SegmentOffset > 0))
+				{
+					var rem = Segments[0] - SegmentOffset;
+					
+					for (int i = 0; i < rem; i += 1)
+						BinaryDecoder<byte>(Stream);
+					
+					SegmentOffset = 0;
+					DeleteFirstSegment();
+				}
+				
+				Buffer = Stream.PeekBytes(Stream.BitPosition);
+				Handler.Dispatch(Input, msg);
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+	
+    void Clear()
+    {
+        Buffer = null;
+		Segments = [];
+		var edp = endpoint ReviveEndpoint;
+		foreach (var msg in Messages)
+		{
+			// BUGBUG: should use release when the keyword is available
+			// Workaround: dispatch them to some endpoint again, so
+			// they will display in UI as normal top level message
+			dispatch edp accepts msg;
+		}
+		Messages = [];
+    }
+}
+
+type Unknown[ushort Length]
+{
+	binary Unknown with BinaryEncoding{Length = Length};
+	
+	override string ToString()
+	{
+		return Unknown.ToString();
+	}
+}
+
+type String
+{
+	ushort Length;
+	string String with BinaryEncoding{Length = Length, TextEncoding = TextEncoding.UTF16};
+	
+	override string ToString()
+	{
+		return String;
+	}
+}
+
+pattern Class = enum byte
+{
+	Marauder = 1,
+	Ranger = 2,
+	Witch = 3,
+	Duelist = 4,
+	Templar = 5,
+	Shadow = 6
+};
+
+pattern Skill = enum ushort
+{
+	DefaultAttack = 0x4000,
+	MoveOnly = 0x2909,
+	LightningArrow = 0x8004
+};
+
+pattern Hash = binary with BinaryEncoding{Length = 32};
+
+map<binary, bool> GameServers = {};
+
+type GameServerInfo
+{
+	ushort Port;
+	IPv4.Address IP;
+	Unknown[20] u0;
+	
+	void Declare()
+	{
+		GameServers[IP.FlatAddress] = true;
+	}
+}

@@ -1,0 +1,256 @@
+protocol PoEGame with
+BinaryEncodingDefaults{Endian = Endian.Big},
+Documentation
+{
+    ProtocolName = "Path of Exile Game Protocol",
+    ShortName = "PoEGame",
+    Description = ""
+};
+
+using Standard;
+using PoE;
+using TCP;
+using Utility;
+
+endpoint Server
+	accepts EnterRequest
+	accepts LinkItem
+	accepts SendChat
+	accepts Exit
+	accepts Ping
+	accepts UseOnLocation
+	accepts PickItem
+	accepts PlaceItem
+	accepts UnknownPacket
+	issues ReceiveChat
+	issues Ping
+	issues EnterResult
+	issues Unknown0
+	issues NewGameServer
+	issues UnknownPacket;
+
+client endpoint Client connected to Server;
+
+type Handler
+{
+	static any message Decode(stream s, BoolWrapper unsized)
+	{
+		any message msg = null;
+		
+		switch (s.CurrentByte)
+		{
+			case 1 =>
+				msg = BinaryDecoder<EnterRequest>(s);
+			case 3 =>
+				msg = BinaryDecoder<LinkItem>(s);
+			case 4 =>
+				msg = BinaryDecoder<SendChat>(s);
+			case 5 =>
+				unsized.Value = true;
+				msg = BinaryDecoder<ReceiveChat>(s);
+			case 6 =>
+				msg = BinaryDecoder<Exit>(s);
+			case 8 =>
+			case 9 =>
+				msg = BinaryDecoder<Ping>(s);
+			case 0xA =>
+				unsized.Value = true;
+				msg = BinaryDecoder<EnterResult>(s);
+			case 0xB =>
+				msg = BinaryDecoder<Unknown0>(s);
+			case 0xE =>
+				msg = BinaryDecoder<UseOnLocation>(s);
+			case 0x10 =>
+				msg = BinaryDecoder<NewGameServer>(s);
+				NewGameServer data = (msg as NewGameServer);
+				data.GameServer.Declare();
+			case 0x11 =>
+				msg = BinaryDecoder<PickItem>(s);
+			case 0x13 =>
+				msg = BinaryDecoder<PlaceItem>(s);
+			default =>
+				unsized.Value = true;
+				msg = BinaryDecoder<UnknownPacket>(s);
+		}
+		
+		return msg;
+	}
+	
+	static void Dispatch(bool Input, any message msg)
+	{
+		if (Input)
+			dispatch endpoint Server accepts msg;
+		else
+			dispatch endpoint Server issues msg;
+	}
+}
+
+ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
+
+endpoint ReassemblyNode[any endpoint ep]
+    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+{
+	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
+	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
+
+    process this accepts s:TCP.VirtualDataSegment
+    {
+		in_buffer.Add(s);
+		dispatch endpoint GarbageEndpoint accepts s;
+    }
+
+    process this issues s:TCP.VirtualDataSegment
+    {
+        out_buffer.Add(s);
+        dispatch endpoint GarbageEndpoint issues s;
+    }
+}
+
+autostart actor ReassemblyActor(ReassemblyNode server)
+{    
+    ~endpoint(ReassemblyNode server)
+    {
+		server.in_buffer.Clear();
+		server.out_buffer.Clear();
+    }
+}
+
+autostart actor ServerOverTCP(TCP.Server server)
+{
+    process server issues s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+    {
+       var e = endpoint ReassemblyNode[server];
+       dispatch e issues s;
+    }
+	
+    process server accepts s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+    {
+        var e = endpoint ReassemblyNode[server];
+        dispatch e accepts s;
+    }
+}
+
+message EnterRequest
+{
+    byte Id;
+	PoE.String Character;
+	uint ConnectionId;
+}
+
+message LinkItem
+{
+    byte Id;
+	uint ItemLinkId;
+	uint u0;
+	uint ItemId;
+	byte u1;
+}
+
+message SendChat
+{
+    byte Id;
+    PoE.String Message;
+	byte ItemCount;
+	array<uint> ItemLinkIds with BinaryEncoding{Length = ItemCount};
+}
+
+type LinkedItem
+{
+	uint ItemId;
+	byte Unknown;
+}
+
+message ReceiveChat
+{
+    byte Id;
+    PoE.String Character;
+    PoE.String Message;
+	ushort ItemCount;
+	array<LinkedItem> Items with BinaryEncoding{Length = ItemCount};
+}
+
+message Exit
+{
+    byte Id;
+}
+
+message Ping
+{
+    byte Id;
+}
+
+type NullTerminated
+{
+	byte u0;
+	optional [|u0 != 0|] NullTerminated Next;
+}
+
+message Unknown0
+{
+    byte Id;
+	ushort Count;
+	array<byte> u0 with BinaryEncoding{Length = Count};
+	array<byte> u1 with BinaryEncoding{Length = Count};
+}
+
+message EnterResult
+{
+    byte Id;
+	uint u0;
+	PoE.String League;
+	uint MapSeed;
+}
+
+message UseOnLocation
+{
+    byte Id;
+	uint X;
+	uint Y;
+	PoE.Skill Skill;
+	ushort ActionId;
+	byte u0;
+}
+
+message NewGameServer
+{
+    byte Id;
+	uint ConnectionId;
+	PoE.Unknown[11] u0;
+	PoE.GameServerInfo GameServer;
+}
+
+pattern ItemContainer = enum ushort
+{
+	Inventory = 1,
+	Body = 2,
+	LeftHand = 3,
+	RightHand = 4,
+	Helm = 5,
+	Amulet = 6,
+	LeftRing = 7,
+	RightRing = 8,
+	Gloves = 9,
+	Boots = 10,
+	Belt = 11,
+	Flasks = 12
+};
+
+message PickItem
+{
+    byte Id;
+	uint ItemId;
+	ItemContainer Container;
+}
+
+message PlaceItem
+{
+    byte Id;
+	ItemContainer Container;
+	uint X;
+	uint Y;
+}
+
+message UnknownPacket
+{
+    byte Id;
+}

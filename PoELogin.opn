@@ -1,0 +1,259 @@
+protocol PoELogin with
+BinaryEncodingDefaults{Endian = Endian.Big},
+Documentation
+{
+    ProtocolName = "Path of Exile Login Protocol",
+    ShortName = "PoELogin",
+    Description = ""
+};
+
+using Standard;
+using PoE;
+using TCP;
+using Utility;
+
+endpoint Server
+	accepts Request
+	accepts ChangePasswordRequest
+	accepts DeleteCharacterRequest
+	accepts PlayRequest
+	accepts CreateCharRequest
+	accepts RequestLeagueInfo
+	issues RequestResult
+	issues ChangePasswordResult
+	issues LeagueUpdate
+	issues GameServerData
+	issues LeagueInfo
+	issues UnknownPacket;
+
+client endpoint Client connected to Server;
+
+type Handler
+{
+	static any message Decode(stream s, BoolWrapper unsized)
+	{
+		any message msg = null;
+		
+		switch (s.CurrentByte)
+		{
+			case 1 =>
+				msg = BinaryDecoder<Request>(s);
+			case 2 =>
+				msg = BinaryDecoder<RequestResult>(s);
+			case 3 =>
+				msg = BinaryDecoder<ChangePasswordRequest>(s);
+			case 4 =>
+				msg = BinaryDecoder<ChangePasswordResult>(s);
+			case 5 =>
+				msg = BinaryDecoder<DeleteCharacterRequest>(s);
+			case 6 =>
+			case 0xA =>
+				msg = BinaryDecoder<LeagueUpdate>(s);
+			case 7 =>
+				msg = BinaryDecoder<PlayRequest>(s);
+			case 9 =>
+				msg = BinaryDecoder<CreateCharRequest>(s);
+			case 0xB =>
+				msg = BinaryDecoder<GameServerData>(s);
+				GameServerData data = (msg as GameServerData);
+				data.GameServer.Declare();
+			case 0xE =>
+				msg = BinaryDecoder<RequestLeagueInfo>(s);
+			case 0xF =>
+				msg = BinaryDecoder<LeagueInfo>(s);
+			default =>
+				unsized.Value = true;
+				msg = BinaryDecoder<UnknownPacket>(s);
+		}
+		
+		return msg;
+	}
+	
+	static void Dispatch(bool Input, any message msg)
+	{
+		if (Input)
+			dispatch endpoint Server accepts msg;
+		else
+			dispatch endpoint Server issues msg;
+	}
+}
+
+ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
+
+endpoint ReassemblyNode[any endpoint ep]
+    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+{
+	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
+	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
+
+    process this accepts s:TCP.VirtualDataSegment
+    {
+		in_buffer.Add(s);
+		dispatch endpoint GarbageEndpoint accepts s;
+    }
+
+    process this issues s:TCP.VirtualDataSegment
+    {
+        out_buffer.Add(s);
+        dispatch endpoint GarbageEndpoint issues s;
+    }
+}
+
+autostart actor ReassemblyActor(ReassemblyNode server)
+{    
+    ~endpoint(ReassemblyNode server)
+    {
+		server.in_buffer.Clear();
+		server.out_buffer.Clear();
+    }
+}
+
+autostart actor ServerOverTCP(TCP.Server server)
+{
+	array<ushort> ServerPorts = [20481];
+
+    process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
+    {
+       var e = endpoint ReassemblyNode[server];
+       dispatch e issues s;
+    }
+	
+    process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
+    {
+        var e = endpoint ReassemblyNode[server];
+        dispatch e accepts s;
+    }
+}
+
+type PasswordHash
+{
+	binary Hash with BinaryEncoding{Length = 32}; // Salted SHA-256
+}
+
+pattern StatusType = enum byte
+{
+	ActionSuccessful = 0x00,
+	AccountDoesntExist = 0x05,
+	WrongPassword = 0x06,
+	NameTaken = 0x15,
+	NameInvalid = 0x16
+};
+
+message Request
+{
+    byte Id;
+	PoE.Unknown[4] u0;
+	PoE.String Account;
+	PasswordHash Password;
+}
+
+type Character
+{
+	PoE.String Name;
+	PoE.String League;
+	PoE.Unknown[7] u0;
+	byte Level;
+	PoE.Unknown[4] u1;
+	PoE.Class Class;
+}
+
+type CharacterList
+{
+	byte CharacterCount;
+	array<Character> Characters with BinaryEncoding{Length = CharacterCount};
+}
+
+type LoginCharacterList
+{
+	PoE.Unknown[4] u0;
+	CharacterList Characters;
+	PoE.Unknown[4] u1;
+}
+
+message RequestResult
+{
+    byte Id;
+	StatusType Status;
+	PoE.Unknown[36] u0;
+	optional [|Status == StatusType.ActionSuccessful|] LoginCharacterList Characters;
+}
+
+message ChangePasswordRequest
+{
+    byte Id;
+	PasswordHash OldPassword;
+	PasswordHash NewPassword;
+}
+
+message ChangePasswordResult
+{
+    byte Id;
+	StatusType Status;
+	PoE.Unknown[4] u0;
+}
+
+message DeleteCharacterRequest
+{
+    byte Id;
+	PoE.String Character; 
+}
+
+message LeagueUpdate
+{
+    byte Id;
+	StatusType Status;
+	PoE.Unknown[4] u0;
+	optional [|Status == StatusType.ActionSuccessful|] CharacterList Characters;
+}
+
+message PlayRequest
+{
+    byte Id;
+	PoE.String Character; 
+}
+
+message CreateCharRequest
+{
+    byte Id;
+	PoE.String Name;
+	PoE.String League;
+	PoE.Unknown[11] u0;
+	PoE.Class Class;
+	PoE.Unknown[32] u1;
+}
+
+message GameServerData
+{
+    byte Id;
+	uint ConnectionId;
+	PoE.Unknown[7] u0;
+	PoE.GameServerInfo GameServer;
+}
+
+message RequestLeagueInfo
+{
+    byte Id;
+}
+
+type League
+{
+	PoE.String Name;
+	PoE.String Description;
+	byte u0 with BinaryEncoding{Width = 6};
+	byte PasswordProtected with BinaryEncoding{Width = 1};
+	byte Hardcore with BinaryEncoding{Width = 1};
+	PoE.Unknown[3] u1;
+}
+
+message LeagueInfo
+{
+    byte Id;
+	uint LeagueCount;
+	array<League> Leagues with BinaryEncoding{Length = LeagueCount};
+}
+
+message UnknownPacket
+{
+    byte Id;
+}
+
