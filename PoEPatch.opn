@@ -111,15 +111,15 @@ autostart actor ServerOverTCP(TCP.Server server)
 message RequestServerInfo
 {
 	byte Id;
-	PoE.Unknown[1] u0;
+	byte ProtocolVersion;
 }
 
 message ServerInfo
 {
     byte Id;
 	PoE.Hash u0;
-	String Server0;
-	String Server1;
+	String Server;
+	String BackupServer;
 }
 
 message RequestFolderList

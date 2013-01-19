@@ -134,6 +134,8 @@ type String
 	}
 }
 
+pattern ushortLE = ushort with BinaryEncoding{Endian = Endian.Little};
+
 pattern Class = enum byte
 {
 	Marauder = 1,
@@ -149,6 +151,26 @@ pattern Skill = enum ushort
 	DefaultAttack = 0x4000,
 	MoveOnly = 0x2909,
 	LightningArrow = 0x8004
+};
+
+pattern SkillLE = Skill with BinaryEncoding{Endian = Endian.Little};
+
+pattern SkillSlot = enum byte
+{
+	MouseLeft = 0,
+	MouseMiddle = 1,
+	MouseRight = 2,
+	QKey = 3,
+	WKey = 4,
+	EKey = 5,
+	RKey = 6
+};
+
+// Index into WorldAreas.dat
+pattern Area = enum byte
+{
+	ForestEncampment = 0x51,
+	OldFields = 0x53
 };
 
 pattern Hash = binary with BinaryEncoding{Length = 32};

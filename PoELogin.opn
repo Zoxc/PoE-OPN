@@ -13,16 +13,17 @@ using TCP;
 using Utility;
 
 endpoint Server
-	accepts Request
+	accepts LoginRequest
 	accepts ChangePasswordRequest
 	accepts DeleteCharacterRequest
 	accepts PlayRequest
 	accepts CreateCharRequest
 	accepts RequestLeagueInfo
-	issues RequestResult
+	issues LoginRequestResult
 	issues ChangePasswordResult
 	issues LeagueUpdate
 	issues GameServerData
+	issues Unknown0
 	issues LeagueInfo
 	issues UnknownPacket;
 
@@ -37,9 +38,9 @@ type Handler
 		switch (s.CurrentByte)
 		{
 			case 1 =>
-				msg = BinaryDecoder<Request>(s);
+				msg = BinaryDecoder<LoginRequest>(s);
 			case 2 =>
-				msg = BinaryDecoder<RequestResult>(s);
+				msg = BinaryDecoder<LoginRequestResult>(s);
 			case 3 =>
 				msg = BinaryDecoder<ChangePasswordRequest>(s);
 			case 4 =>
@@ -47,16 +48,19 @@ type Handler
 			case 5 =>
 				msg = BinaryDecoder<DeleteCharacterRequest>(s);
 			case 6 =>
-			case 0xA =>
 				msg = BinaryDecoder<LeagueUpdate>(s);
 			case 7 =>
 				msg = BinaryDecoder<PlayRequest>(s);
 			case 9 =>
 				msg = BinaryDecoder<CreateCharRequest>(s);
+			case 0xA =>
+				msg = BinaryDecoder<LeagueUpdate>(s);
 			case 0xB =>
 				msg = BinaryDecoder<GameServerData>(s);
 				GameServerData data = (msg as GameServerData);
 				data.GameServer.Declare();
+			case 0xD =>
+				msg = BinaryDecoder<Unknown0>(s);
 			case 0xE =>
 				msg = BinaryDecoder<RequestLeagueInfo>(s);
 			case 0xF =>
@@ -139,7 +143,7 @@ pattern StatusType = enum byte
 	NameInvalid = 0x16
 };
 
-message Request
+message LoginRequest
 {
     byte Id;
 	PoE.Unknown[4] u0;
@@ -170,7 +174,7 @@ type LoginCharacterList
 	PoE.Unknown[4] u1;
 }
 
-message RequestResult
+message LoginRequestResult
 {
     byte Id;
 	StatusType Status;
@@ -228,6 +232,12 @@ message GameServerData
 	uint ConnectionId;
 	PoE.Unknown[7] u0;
 	PoE.GameServerInfo GameServer;
+}
+
+message Unknown0
+{
+    byte Id;
+	byte u0;
 }
 
 message RequestLeagueInfo

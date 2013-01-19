@@ -18,15 +18,38 @@ endpoint Server
 	accepts SendChat
 	accepts Exit
 	accepts Ping
+	accepts Unknown2
 	accepts UseOnLocation
 	accepts PickItem
 	accepts PlaceItem
+	accepts SpendPassivePoint
+	accepts EquipSkill
+	accepts UseObject
+	accepts Unknown1
+	accepts JoinParty
+	accepts LeaveParty
+	accepts UpdatePublicParty
+	accepts RequestPartyDetails
+	accepts RequestPartyList
+	accepts UseWeaponSet
 	accepts UnknownPacket
 	issues ReceiveChat
 	issues Ping
 	issues EnterResult
 	issues Unknown0
 	issues NewGameServer
+	issues PassivePoints
+	issues AssignedSkills
+	issues PlayerUpdate
+	issues PlayerLeftParty
+	issues PartyDetails
+	issues LeftParty
+	issues PartyList
+	issues Friend
+	issues UseWeaponSetAck
+	issues ObjectAdd
+	issues ObjectUpdate
+	issues ObjectRemove
 	issues UnknownPacket;
 
 client endpoint Client connected to Server;
@@ -51,6 +74,7 @@ type Handler
 			case 6 =>
 				msg = BinaryDecoder<Exit>(s);
 			case 8 =>
+				msg = BinaryDecoder<Ping>(s);
 			case 9 =>
 				msg = BinaryDecoder<Ping>(s);
 			case 0xA =>
@@ -58,6 +82,8 @@ type Handler
 				msg = BinaryDecoder<EnterResult>(s);
 			case 0xB =>
 				msg = BinaryDecoder<Unknown0>(s);
+			case 0xD =>
+				msg = BinaryDecoder<Unknown2>(s);
 			case 0xE =>
 				msg = BinaryDecoder<UseOnLocation>(s);
 			case 0x10 =>
@@ -68,6 +94,52 @@ type Handler
 				msg = BinaryDecoder<PickItem>(s);
 			case 0x13 =>
 				msg = BinaryDecoder<PlaceItem>(s);
+			case 0x17 =>
+				msg = BinaryDecoder<PassivePoints>(s);
+			case 0x18 =>
+				msg = BinaryDecoder<SpendPassivePoint>(s);
+			case 0x20 =>
+				msg = BinaryDecoder<EquipSkill>(s);
+			case 0x21 =>
+				msg = BinaryDecoder<AssignedSkills>(s);
+			case 0x24 =>
+				msg = BinaryDecoder<UseObject>(s);
+			case 0x28 =>
+				msg = BinaryDecoder<Unknown1>(s);
+			case 0x37 =>
+				msg = BinaryDecoder<JoinParty>(s);
+			case 0x38 =>
+				msg = BinaryDecoder<LeaveParty>(s);
+			case 0x3A =>
+				msg = BinaryDecoder<UpdatePublicParty>(s);
+			case 0x3B =>
+				msg = BinaryDecoder<RequestPartyDetails>(s);
+			case 0x3C =>
+				msg = BinaryDecoder<PlayerUpdate>(s);
+			case 0x3D =>
+				msg = BinaryDecoder<PlayerLeftParty>(s);
+			case 0x3E =>
+				msg = BinaryDecoder<PartyDetails>(s);
+			case 0x3F =>
+				msg = BinaryDecoder<LeftParty>(s);
+			case 0x41 =>
+				msg = BinaryDecoder<RequestPartyList>(s);
+			case 0x42 =>
+				msg = BinaryDecoder<PartyList>(s);
+			case 0x57 =>
+				msg = BinaryDecoder<Friend>(s);
+			case 0x5D =>
+				msg = BinaryDecoder<UseWeaponSet>(s);
+			case 0x5E =>
+				msg = BinaryDecoder<UseWeaponSetAck>(s);
+			case 0xF0 =>
+				unsized.Value = true;
+				msg = BinaryDecoder<ObjectAdd>(s);
+			case 0xF1 =>
+				unsized.Value = true;
+				msg = BinaryDecoder<ObjectUpdate>(s);
+			case 0xF2 =>
+				msg = BinaryDecoder<ObjectRemove>(s);
 			default =>
 				unsized.Value = true;
 				msg = BinaryDecoder<UnknownPacket>(s);
@@ -117,17 +189,17 @@ autostart actor ReassemblyActor(ReassemblyNode server)
 
 autostart actor ServerOverTCP(TCP.Server server)
 {
-    process server issues s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
-    {
-       var e = endpoint ReassemblyNode[server];
-       dispatch e issues s;
-    }
-	
-    process server accepts s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
-    {
-        var e = endpoint ReassemblyNode[server];
-        dispatch e accepts s;
-    }
+	process server issues s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+	{
+		var e = endpoint ReassemblyNode[server];
+		dispatch e issues s;
+	}
+
+	process server accepts s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+	{
+		var e = endpoint ReassemblyNode[server];
+		dispatch e accepts s;
+	}
 }
 
 message EnterRequest
@@ -156,8 +228,9 @@ message SendChat
 
 type LinkedItem
 {
-	uint ItemId;
-	byte Unknown;
+	uint MessageIndex;
+	PoE.Unknown[13] u0;
+	uint StackSize;
 }
 
 message ReceiveChat
@@ -166,7 +239,7 @@ message ReceiveChat
     PoE.String Character;
     PoE.String Message;
 	ushort ItemCount;
-	array<LinkedItem> Items with BinaryEncoding{Length = ItemCount};
+	//array<LinkedItem> Items with BinaryEncoding{Length = ItemCount};
 }
 
 message Exit
@@ -179,18 +252,19 @@ message Ping
     byte Id;
 }
 
-type NullTerminated
-{
-	byte u0;
-	optional [|u0 != 0|] NullTerminated Next;
-}
-
 message Unknown0
 {
     byte Id;
 	ushort Count;
-	array<byte> u0 with BinaryEncoding{Length = Count};
+	array<ushort> u0 with BinaryEncoding{Length = Count};
 	array<byte> u1 with BinaryEncoding{Length = Count};
+}
+
+message Unknown1
+{
+    byte Id;
+	uint u0;
+	uint u1;
 }
 
 message EnterResult
@@ -199,6 +273,12 @@ message EnterResult
 	uint u0;
 	PoE.String League;
 	uint MapSeed;
+}
+
+message Unknown2
+{
+    byte Id;
+	PoE.Unknown[9] u0;
 }
 
 message UseOnLocation
@@ -219,7 +299,7 @@ message NewGameServer
 	PoE.GameServerInfo GameServer;
 }
 
-pattern ItemContainer = enum ushort
+pattern ItemContainer = enum uint
 {
 	Inventory = 1,
 	Body = 2,
@@ -248,6 +328,188 @@ message PlaceItem
 	ItemContainer Container;
 	uint X;
 	uint Y;
+}
+
+message PassivePoints
+{
+    byte Id;
+	ushort NodeCount;
+	array<PoE.ushortLE> Nodes with BinaryEncoding{Length = NodeCount};
+	PoE.Unknown[6] u0;
+}
+
+message SpendPassivePoint
+{
+    byte Id;
+	ushort u0;
+	ushort Node;
+}
+
+message EquipSkill
+{
+    byte Id;
+	PoE.SkillSlot Slot;
+	PoE.Skill Skill;
+}
+
+message AssignedSkills
+{
+    byte Id;
+	array<PoE.SkillLE> Skills with BinaryEncoding{Length = 7};
+}
+
+message UseObject
+{
+    byte Id;
+	uint u0;
+	uint u1;
+}
+
+message JoinParty
+{
+    byte Id;
+	uint PartyId;
+}
+
+message LeaveParty
+{
+    byte Id;
+	uint PartyId;
+}
+
+message UpdatePublicParty
+{
+    byte Id;
+	PoE.String PartyName;
+}
+
+message RequestPartyDetails
+{
+    byte Id;
+	uint PartyId;
+}
+
+type CharacterInfo
+{
+	PoE.String Character;
+	uint Level;
+	PoE.Class Class;
+	PoE.Unknown[3] u0;
+	PoE.Area Area;
+}
+
+message PlayerUpdate
+{
+    byte Id;
+	PoE.String Account;
+	PoE.String Message;
+    bool Online;
+	optional [|Online == true|] CharacterInfo Character;
+}
+
+message PlayerLeftParty
+{
+    byte Id;
+	PoE.String Character;
+}
+
+type Party
+{
+	uint Id;
+	PoE.String Name;
+}
+
+type PartyPlayer
+{
+	PoE.String Account;
+	byte u0;
+}
+
+message PartyDetails
+{
+    byte Id;
+	Party Party;
+    byte u0;
+    byte PlayerCount;
+	array<PartyPlayer> Skills with BinaryEncoding{Length = PlayerCount};
+}
+
+message LeftParty
+{
+    byte Id;
+	uint PartyId;
+}
+
+message RequestPartyList
+{
+    byte Id;
+}
+
+type PartyListEntry
+{
+	Party Party;
+	PoE.Unknown[3] u0;
+}
+
+message PartyList
+{
+    byte Id;
+	ushort PartyCount;
+	array<PartyListEntry> Parties with BinaryEncoding{Length = PartyCount};
+}
+
+message Friend
+{
+    byte Id;
+	uint u0;
+	PoE.String Account;
+}
+
+message UseWeaponSet
+{
+    byte Id;
+	bool Primary;
+}
+
+message UseWeaponSetAck
+{
+    byte Id;
+	bool Primary;
+	uint u0;
+}
+
+message ObjectAdd
+{
+    byte Id;
+	uint u0;
+	uint ObjectId;
+}
+
+type ObjectUseOnLocation
+{
+	PoE.Unknown[3] u0;
+	uint OldX;
+	uint OldY;
+	PoE.Skill Skill;
+	ushort ActionId;
+	uint u1;
+	uint X;
+	uint Y;
+	byte u2;
+}
+
+message ObjectUpdate
+{
+    byte Id;
+	uint ObjectId;
+	ushort UpdateType;
+	optional [|UpdateType == 0x701|] ObjectUseOnLocation ObjectUseOnLocation;
+}
+
+message ObjectRemove
+{
+    byte Id;
+	uint ObjectId;
 }
 
 message UnknownPacket
