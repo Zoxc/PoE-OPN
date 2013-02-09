@@ -1,5 +1,6 @@
 protocol PoEPatch with
 BinaryEncodingDefaults{Endian = Endian.Big},
+Visualization{AliasName = "PoE"},
 Documentation
 {
     ProtocolName = "Path of Exile Patch Protocol",

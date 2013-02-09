@@ -1,5 +1,6 @@
 protocol PoELogin with
 BinaryEncodingDefaults{Endian = Endian.Big},
+Visualization{AliasName = "PoE"},
 Documentation
 {
     ProtocolName = "Path of Exile Login Protocol",
@@ -34,6 +35,7 @@ type Handler
 	static any message Decode(stream s, BoolWrapper unsized)
 	{
 		any message msg = null;
+		optional GameServerData game_server_data;
 		
 		switch (s.CurrentByte)
 		{
@@ -56,9 +58,10 @@ type Handler
 			case 0xA =>
 				msg = BinaryDecoder<LeagueUpdate>(s);
 			case 0xB =>
-				msg = BinaryDecoder<GameServerData>(s);
-				GameServerData data = (msg as GameServerData);
-				data.GameServer.Declare();
+				game_server_data = BinaryDecoder<GameServerData>(s);
+				if (game_server_data != nothing)
+					game_server_data.GameServer.Declare();
+				msg = game_server_data;
 			case 0xD =>
 				msg = BinaryDecoder<Unknown0>(s);
 			case 0xE =>

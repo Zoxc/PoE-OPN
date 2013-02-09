@@ -1,5 +1,6 @@
 protocol PoEGame with
 BinaryEncodingDefaults{Endian = Endian.Big},
+Visualization{AliasName = "PoE"},
 Documentation
 {
     ProtocolName = "Path of Exile Game Protocol",
@@ -59,6 +60,7 @@ type Handler
 	static any message Decode(stream s, BoolWrapper unsized)
 	{
 		any message msg = null;
+		optional NewGameServer new_game_server;
 		
 		switch (s.CurrentByte)
 		{
@@ -87,9 +89,10 @@ type Handler
 			case 0xE =>
 				msg = BinaryDecoder<UseOnLocation>(s);
 			case 0x10 =>
-				msg = BinaryDecoder<NewGameServer>(s);
-				NewGameServer data = (msg as NewGameServer);
-				data.GameServer.Declare();
+				new_game_server = BinaryDecoder<NewGameServer>(s);
+				if (new_game_server != nothing)
+					new_game_server.GameServer.Declare();
+				msg = new_game_server;
 			case 0x11 =>
 				msg = BinaryDecoder<PickItem>(s);
 			case 0x13 =>
