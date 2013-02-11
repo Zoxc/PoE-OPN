@@ -190,7 +190,6 @@ pattern Area = enum byte
 pattern Hash = binary with BinaryEncoding{Length = 32};
 
 map<binary, bool> GameServers = {};
-array<binary> Keys = [];
 
 type GameServerInfo
 {

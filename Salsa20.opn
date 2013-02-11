@@ -37,6 +37,8 @@ type Context
 		Input[9] = 0;
 	}
 	
+	array<byte> Stream = [];
+	
 	binary Process(binary Data)
 	{
 		if(Data == null)
@@ -47,32 +49,34 @@ type Context
 		int Bytes = Data.ByteLength;
 		int Offset = 0;
 		
-		if(Bytes == 0)
-			return null;
-
-        while(true)
+        while(Bytes > 0)
 		{
-			var Output = WordToByte(Input);
-			Input[8] += 1;
+			int StreamCount = Count(Stream);
 			
-			if(Input[8] == 0)
-				Input[9] += 1;
-			
-			if (Bytes <= 64)
+			if(StreamCount == 0)
 			{
-				for (int i = 0; i < Bytes; i += 1)
-					Result += [(DataArray[Offset + i] ^ Output[i]) as byte];
+				Stream = WordToByte(Input);
+				
+				Input[8] += 1;
+				
+				if(Input[8] == 0)
+					Input[9] += 1;
 					
-				return Result as binary;
+				StreamCount = 64;
 			}
 			
-			for (int i = 0; i < 64; i += 1)
-				Result += [(DataArray[Offset + i] ^ Output[i]) as byte];
+			var Max = Bytes > StreamCount ? StreamCount : Bytes;
 			
-			Bytes -= 64;
-			Offset += 64;
+			for (int i = 0; i < Max; i += 1)
+				Result += [(DataArray[Offset + i] ^ Stream[i]) as byte];
+				
+			Stream = Segment(Stream, Max);
+			
+			Offset += Max;
+			Bytes -= Max;
 		}
-		return null;
+		
+		return Result as binary;
 	}
 }
 

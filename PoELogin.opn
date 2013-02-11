@@ -13,6 +13,7 @@ using PoE;
 using TCP;
 using Utility;
 using Salsa20;
+using PoEKey;
 
 endpoint Server
 	accepts KeyExchange
@@ -23,7 +24,6 @@ endpoint Server
 	accepts CreateCharRequest
 	accepts RequestLeagueInfo
 	accepts UnknownPacket
-	issues Salsa20Info
 	issues KeyExchange
 	issues LoginRequestResult
 	issues ChangePasswordResult
@@ -67,9 +67,9 @@ type Handler
 				if (game_server_data != nothing)
 					game_server_data.GameServer.Declare();
 				msg = game_server_data;
-			case 13 =>
-				msg = BinaryDecoder<Unknown0>(s);
 			case 14 =>
+				msg = BinaryDecoder<Unknown0>(s);
+			case 15 =>
 				msg = BinaryDecoder<RequestLeagueInfo>(s);
 			case 16 =>
 				msg = BinaryDecoder<LeagueInfo>(s);
@@ -140,7 +140,7 @@ autostart actor ServerOverTCP(TCP.Server server)
 	{
 		if(Key == null)
 		{
-			Key = PoE.Keys[0];
+			Key = PoEKey.GetKey();
 			var EncryptionKey = Segment(Key as array<byte>, 0, 32) as binary;
 			var EncryptionIV = Segment(Key as array<byte>, 32, 8) as binary;
 			var DecryptionIV = Segment(Key as array<byte>, 48, 8) as binary;
@@ -148,7 +148,6 @@ autostart actor ServerOverTCP(TCP.Server server)
 			Out.SetupKey(EncryptionKey);
 			In.SetupIV(EncryptionIV);
 			Out.SetupIV(DecryptionIV);
-			dispatch endpoint Server issues new Salsa20Info{EncryptionKey = EncryptionKey, EncryptionIV = EncryptionIV, DecryptionIV = DecryptionIV};
 		}
 	}
 

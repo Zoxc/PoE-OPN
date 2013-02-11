@@ -18,16 +18,38 @@ using EtwEvent;
 const guid PoeKeyProvider = {FD3DF53C-5077-4A8C-9EE8-817388082880};
 
 endpoint PrivateKeyDest
-    accepts PrivateKey;
+	accepts PrivateKey;
+
+endpoint PrivateKeyEndpoint
+	accepts PrivateKey
+{
+	array<binary> Keys = [];
+	
+    process this accepts s:PrivateKey
+    {
+		Keys += [s.Key];
+		
+        dispatch (endpoint PrivateKeyDest) accepts s as (any message);
+    }
+
+	binary GetKey()
+	{
+		return Keys[0];
+		Keys = Segment(Keys, 1);
+	}
+}
 
 autostart actor PrivateKeyOverEtwEvent(EtwEvent.Node etw)
 {
     process etw accepts etwMsg:EtwProviderMsg where value.EventRecord.Header.ProviderId == PoeKeyProvider
     {
-		PoE.Keys += [etwMsg.Payload];
-		var key = BinaryDecoder<PrivateKey>(etwMsg.Payload) as (any message);
-        dispatch (endpoint PrivateKeyDest) accepts key;
+        dispatch (endpoint PrivateKeyEndpoint) accepts (BinaryDecoder<PrivateKey>(etwMsg.Payload) as (any message));
     }
+}
+
+binary GetKey()
+{
+	return ((endpoint PrivateKeyEndpoint) as PrivateKeyEndpoint).GetKey();
 }
 
 message PrivateKey
