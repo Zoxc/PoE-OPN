@@ -55,100 +55,209 @@ endpoint Server
 
 client endpoint Client connected to Server;
 
-type Handler
+endpoint DecodeNode[any endpoint server]
+    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
 {
+	EncryptionContext Encryption = new EncryptionContext{};
+	bool SentInfo = false;
+	
 	static any message Decode(stream s, BoolWrapper unsized)
 	{
-		any message msg = null;
-		optional NewGameServer new_game_server;
-		
 		switch (s.CurrentByte)
 		{
 			case 1 =>
-				msg = BinaryDecoder<EnterRequest>(s);
+				var m = BinaryDecoder<EnterRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 3 =>
-				msg = BinaryDecoder<LinkItem>(s);
+				var m = BinaryDecoder<LinkItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 4 =>
-				msg = BinaryDecoder<SendChat>(s);
+				var m = BinaryDecoder<SendChat>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 5 =>
 				unsized.Value = true;
-				msg = BinaryDecoder<ReceiveChat>(s);
+				var m = BinaryDecoder<ReceiveChat>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 6 =>
-				msg = BinaryDecoder<Exit>(s);
+				var m = BinaryDecoder<Exit>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 8 =>
-				msg = BinaryDecoder<Ping>(s);
+				var m = BinaryDecoder<Ping>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 9 =>
-				msg = BinaryDecoder<Ping>(s);
-			case 0xA =>
+				var m = BinaryDecoder<Ping>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0xB => // bumped
 				unsized.Value = true;
-				msg = BinaryDecoder<EnterResult>(s);
-			case 0xB =>
-				msg = BinaryDecoder<Unknown0>(s);
+				var m = BinaryDecoder<EnterResult>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0xC => // bumped
+				var m = BinaryDecoder<Unknown0>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xD =>
-				msg = BinaryDecoder<Unknown2>(s);
+				var m = BinaryDecoder<Unknown2>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xE =>
-				msg = BinaryDecoder<UseOnLocation>(s);
+				var m = BinaryDecoder<UseOnLocation>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x10 =>
-				new_game_server = BinaryDecoder<NewGameServer>(s);
-				if (new_game_server != nothing)
-					new_game_server.GameServer.Declare();
-				msg = new_game_server;
+				var m = BinaryDecoder<NewGameServer>(s);
+				if(m == nothing)
+					return null;
+				PoE.EncryptionKeys[m.ConnectionId] = m.GameServer.EncryptionKey;
+				m.GameServer.Declare();
+				return m as any message;
 			case 0x11 =>
-				msg = BinaryDecoder<PickItem>(s);
+				var m = BinaryDecoder<PickItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x13 =>
-				msg = BinaryDecoder<PlaceItem>(s);
+				var m = BinaryDecoder<PlaceItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x17 =>
-				msg = BinaryDecoder<PassivePoints>(s);
+				var m = BinaryDecoder<PassivePoints>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x18 =>
-				msg = BinaryDecoder<SpendPassivePoint>(s);
+				var m = BinaryDecoder<SpendPassivePoint>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x20 =>
-				msg = BinaryDecoder<EquipSkill>(s);
+				var m = BinaryDecoder<EquipSkill>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x21 =>
-				msg = BinaryDecoder<AssignedSkills>(s);
+				var m = BinaryDecoder<AssignedSkills>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x24 =>
-				msg = BinaryDecoder<UseObject>(s);
+				var m = BinaryDecoder<UseObject>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x28 =>
-				msg = BinaryDecoder<Unknown1>(s);
+				var m = BinaryDecoder<Unknown1>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x37 =>
-				msg = BinaryDecoder<JoinParty>(s);
+				var m = BinaryDecoder<JoinParty>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x38 =>
-				msg = BinaryDecoder<LeaveParty>(s);
+				var m = BinaryDecoder<LeaveParty>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3A =>
-				msg = BinaryDecoder<UpdatePublicParty>(s);
+				var m = BinaryDecoder<UpdatePublicParty>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3B =>
-				msg = BinaryDecoder<RequestPartyDetails>(s);
+				var m = BinaryDecoder<RequestPartyDetails>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3C =>
-				msg = BinaryDecoder<PlayerUpdate>(s);
+				var m = BinaryDecoder<PlayerUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3D =>
-				msg = BinaryDecoder<PlayerLeftParty>(s);
+				var m = BinaryDecoder<PlayerLeftParty>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3E =>
-				msg = BinaryDecoder<PartyDetails>(s);
+				var m = BinaryDecoder<PartyDetails>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x3F =>
-				msg = BinaryDecoder<LeftParty>(s);
+				var m = BinaryDecoder<LeftParty>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x41 =>
-				msg = BinaryDecoder<RequestPartyList>(s);
+				var m = BinaryDecoder<RequestPartyList>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x42 =>
-				msg = BinaryDecoder<PartyList>(s);
+				var m = BinaryDecoder<PartyList>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x57 =>
-				msg = BinaryDecoder<Friend>(s);
+				var m = BinaryDecoder<Friend>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x5D =>
-				msg = BinaryDecoder<UseWeaponSet>(s);
+				var m = BinaryDecoder<UseWeaponSet>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x5E =>
-				msg = BinaryDecoder<UseWeaponSetAck>(s);
+				var m = BinaryDecoder<UseWeaponSetAck>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xF0 =>
 				unsized.Value = true;
-				msg = BinaryDecoder<ObjectAdd>(s);
+				var m = BinaryDecoder<ObjectAdd>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xF1 =>
 				unsized.Value = true;
-				msg = BinaryDecoder<ObjectUpdate>(s);
+				var m = BinaryDecoder<ObjectUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xF2 =>
-				msg = BinaryDecoder<ObjectRemove>(s);
+				var m = BinaryDecoder<ObjectRemove>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			default =>
 				unsized.Value = true;
-				msg = BinaryDecoder<UnknownPacket>(s);
+				var m = BinaryDecoder<UnknownPacket>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 		}
-		
-		return msg;
 	}
 	
 	static void Dispatch(bool Input, any message msg)
@@ -158,35 +267,34 @@ type Handler
 		else
 			dispatch endpoint Server issues msg;
 	}
-}
-
-ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
-
-endpoint ReassemblyNode[any endpoint ep]
-    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
-{
-	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
-	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
-
+	
     process this accepts s:TCP.VirtualDataSegment
     {
-		in_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
-		dispatch endpoint GarbageEndpoint accepts s;
+		if(!SentInfo)
+		{
+			SentInfo = true;
+			var Request = BinaryDecoder<EnterRequest>(s.Payload);
+			var Key = PoE.EncryptionKeys[Request.ConnectionId];
+			Encryption.Setup(Key);
+		
+			var ep = (endpoint PoE.ReassemblyNode[server]) as PoE.ReassemblyNode;
+			ep.SetHandler(new ProtocolHandler{Decode = Decode, Dispatch = Dispatch});
+			
+			dispatch endpoint Server accepts Request as any message;
+		}
+		else
+		{
+			var data = Encryption.In.Process(s.Payload);
+			var e = endpoint PoE.ReassemblyNode[server];
+			dispatch e accepts (new PoE.DecryptedPayload{Payload = data} as any message);
+		}
     }
 
     process this issues s:TCP.VirtualDataSegment
     {
-        out_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
-        dispatch endpoint GarbageEndpoint issues s;
-    }
-}
-
-autostart actor ReassemblyActor(ReassemblyNode server)
-{    
-    ~endpoint(ReassemblyNode server)
-    {
-		server.in_buffer.Clear();
-		server.out_buffer.Clear();
+		var data = Encryption.Out.Process(s.Payload);
+		var e = endpoint PoE.ReassemblyNode[server];
+		dispatch e issues (new PoE.DecryptedPayload{Payload = data} as any message);
     }
 }
 
@@ -194,13 +302,13 @@ autostart actor ServerOverTCP(TCP.Server server)
 {
 	process server issues s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
 	{
-		var e = endpoint ReassemblyNode[server];
+		var e = endpoint DecodeNode[server];
 		dispatch e issues s;
 	}
 
 	process server accepts s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
 	{
-		var e = endpoint ReassemblyNode[server];
+		var e = endpoint DecodeNode[server];
 		dispatch e accepts s;
 	}
 }

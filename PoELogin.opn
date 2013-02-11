@@ -37,155 +37,162 @@ client endpoint Client connected to Server;
 
 type Handler
 {
-	static any message Decode(stream s, BoolWrapper unsized)
+}
+
+endpoint DecodeNode[any endpoint server]
+    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+{
+	EncryptionContext Encryption = new EncryptionContext{};
+	bool ReceivedKey = false;
+	bool SentKey = false;
+	binary Key = null;
+	
+	any message Decode(stream s, BoolWrapper unsized)
 	{
-		any message msg = null;
-		optional GameServerData game_server_data;
-		
 		switch (s.CurrentByte)
 		{
 			case 2 =>
-				msg = BinaryDecoder<LoginRequest>(s);
+				var m = BinaryDecoder<LoginRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 3 =>
-				msg = BinaryDecoder<LoginRequestResult>(s);
+				var m = BinaryDecoder<LoginRequestResult>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 4 =>
-				msg = BinaryDecoder<ChangePasswordRequest>(s);
+				var m = BinaryDecoder<ChangePasswordRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 5 =>
-				msg = BinaryDecoder<ChangePasswordResult>(s);
+				var m = BinaryDecoder<ChangePasswordResult>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 6 =>
-				msg = BinaryDecoder<DeleteCharacterRequest>(s);
+				var m = BinaryDecoder<DeleteCharacterRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 7 =>
-				msg = BinaryDecoder<LeagueUpdate>(s);
+				var m = BinaryDecoder<LeagueUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 8 =>
-				msg = BinaryDecoder<PlayRequest>(s);
+				var m = BinaryDecoder<PlayRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 10 =>
-				msg = BinaryDecoder<CreateCharRequest>(s);
+				var m = BinaryDecoder<CreateCharRequest>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 11 =>
-				msg = BinaryDecoder<LeagueUpdate>(s);
+				var m = BinaryDecoder<LeagueUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 12 =>
-				game_server_data = BinaryDecoder<GameServerData>(s);
-				if (game_server_data != nothing)
-					game_server_data.GameServer.Declare();
-				msg = game_server_data;
+				var m = BinaryDecoder<GameServerData>(s);
+				if(m == nothing)
+					return null;
+				PoE.EncryptionKeys[m.ConnectionId] = m.GameServer.EncryptionKey;
+				m.GameServer.Declare();
+				return m as any message;
 			case 14 =>
-				msg = BinaryDecoder<Unknown0>(s);
+				var m = BinaryDecoder<Unknown0>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 15 =>
-				msg = BinaryDecoder<RequestLeagueInfo>(s);
+				var m = BinaryDecoder<RequestLeagueInfo>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 16 =>
-				msg = BinaryDecoder<LeagueInfo>(s);
+				var m = BinaryDecoder<LeagueInfo>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			default =>
 				unsized.Value = true;
-				msg = BinaryDecoder<UnknownPacket>(s);
+				var m = BinaryDecoder<UnknownPacket>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 		}
-		
-		return msg;
 	}
 	
-	static void Dispatch(bool Input, any message msg)
+	void Dispatch(bool Input, any message msg)
 	{
 		if (Input)
 			dispatch endpoint Server accepts msg;
 		else
 			dispatch endpoint Server issues msg;
 	}
-}
-
-ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
-
-endpoint ReassemblyNode[any endpoint ep]
-    accepts PoE.DecryptedPayload issues PoE.DecryptedPayload
-{
-	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
-	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
-
-    process this accepts s:PoE.DecryptedPayload
-    {
-		in_buffer.Add(s);
-		dispatch endpoint GarbageEndpoint accepts s;
-    }
-
-    process this issues s:PoE.DecryptedPayload
-    {
-        out_buffer.Add(s);
-        dispatch endpoint GarbageEndpoint issues s;
-    }
-}
-
-autostart actor ReassemblyActor(ReassemblyNode server)
-{    
-    ~endpoint(ReassemblyNode server)
-    {
-		server.in_buffer.Clear();
-		server.out_buffer.Clear();
-    }
-}
-
-message Salsa20Info
-{
-	binary EncryptionKey;
-	binary EncryptionIV;
-	binary DecryptionIV;
-}
-
-autostart actor ServerOverTCP(TCP.Server server)
-{
-	array<ushort> ServerPorts = [20481];
-	bool ReceivedKey = false;
-	bool SentKey = false;
-	binary Key = null;
-	Salsa20.Context In = new Salsa20.Context{};
-	Salsa20.Context Out = new Salsa20.Context{};
 	
 	void GetKey()
 	{
 		if(Key == null)
 		{
+			var ep = (endpoint PoE.ReassemblyNode[server]) as PoE.ReassemblyNode;
+			ep.SetHandler(new ProtocolHandler{Decode = Decode, Dispatch = Dispatch});
 			Key = PoEKey.GetKey();
-			var EncryptionKey = Segment(Key as array<byte>, 0, 32) as binary;
-			var EncryptionIV = Segment(Key as array<byte>, 32, 8) as binary;
-			var DecryptionIV = Segment(Key as array<byte>, 48, 8) as binary;
-			In.SetupKey(EncryptionKey);
-			Out.SetupKey(EncryptionKey);
-			In.SetupIV(EncryptionIV);
-			Out.SetupIV(DecryptionIV);
+			Encryption.Setup(Key);
 		}
 	}
 
-    process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
-    {
-		if(!SentKey)
-		{
-			SentKey = true;
-			dispatch endpoint GarbageEndpoint issues s;
-			dispatch endpoint Server issues (BinaryDecoder<KeyExchange>(s.Payload) as any message);
-		}
-		else
-		{
-			GetKey();
-		
-			var data = Out.Process(s.Payload);
-			var e = endpoint ReassemblyNode[server];
-			dispatch e issues (new PoE.DecryptedPayload{Payload = data} as any message);
-		}
-    }
-	
-    process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
+    process this accepts s:TCP.VirtualDataSegment
     {
 		if(!ReceivedKey)
 		{
 			ReceivedKey = true;
-			dispatch endpoint GarbageEndpoint accepts s;
 			dispatch endpoint Server accepts (BinaryDecoder<KeyExchange>(s.Payload) as any message);
 		}
 		else
 		{
 			GetKey();
-			
-			var data = In.Process(s.Payload);
-			var e = endpoint ReassemblyNode[server];
+			var data = Encryption.In.Process(s.Payload);
+			var e = endpoint PoE.ReassemblyNode[server];
 			dispatch e accepts (new PoE.DecryptedPayload{Payload = data} as any message);
 		}
-		
+    }
+
+    process this issues s:TCP.VirtualDataSegment
+    {
+		if(!SentKey)
+		{
+			SentKey = true;
+			dispatch endpoint Server issues (BinaryDecoder<KeyExchange>(s.Payload) as any message);
+		}
+		else
+		{
+			GetKey();
+			var data = Encryption.Out.Process(s.Payload);
+			var e = endpoint PoE.ReassemblyNode[server];
+			dispatch e issues (new PoE.DecryptedPayload{Payload = data} as any message);
+		}
+    }
+}
+
+autostart actor ServerOverTCP(TCP.Server server)
+{
+	array<ushort> ServerPorts = [20481];
+	
+    process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
+    {
+		var e = endpoint DecodeNode[server];
+		dispatch e issues s;
+    }
+	
+    process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
+    {
+		var e = endpoint DecodeNode[server];
+		dispatch e accepts s;
     }
 }
 

@@ -29,28 +29,45 @@ type Handler
 {
 	static any message Decode(stream s, BoolWrapper unsized)
 	{
-		any message msg = null;
-		
 		switch (s.CurrentByte)
 		{
 			case 1 =>
-				msg = BinaryDecoder<RequestServerInfo>(s);
+				var m = BinaryDecoder<RequestServerInfo>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 2 =>
-				msg = BinaryDecoder<ServerInfo>(s);
+				var m = BinaryDecoder<ServerInfo>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 3 =>
-				msg = BinaryDecoder<RequestFolderList>(s);
+				var m = BinaryDecoder<RequestFolderList>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 4 =>
-				msg = BinaryDecoder<FolderList>(s);
+				var m = BinaryDecoder<FolderList>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 5 =>
-				msg = BinaryDecoder<RequestPatchNotes>(s);
+				var m = BinaryDecoder<RequestPatchNotes>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 6 =>
-				msg = BinaryDecoder<PatchNotes>(s);
+				var m = BinaryDecoder<PatchNotes>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			default =>
 				unsized.Value = true;
-				msg = BinaryDecoder<UnknownPacket>(s);
+				var m = BinaryDecoder<UnknownPacket>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 		}
-		
-		return msg;
 	}
 	
 	static void Dispatch(bool Input, any message msg)

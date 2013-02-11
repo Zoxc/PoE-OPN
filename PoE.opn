@@ -1,27 +1,34 @@
-module PoE with BinaryEncodingDefaults{Endian = Endian.Big};
+protocol PoE with BinaryEncodingDefaults{Endian = Endian.Big};
 
 using Standard;
 using TCP;
 using Utility;
 using IPv4;
+using Salsa20;
 
 type BoolWrapper
 {
 	bool Value;
 }
-/*
-optional any message StripOptional<T>(optional T msg)
-{
-	if(msg == nothing)
-		return null;
-	
-	return msg as T;
-}
-*/
 
 message DecryptedPayload
 {
 	binary Payload;
+}
+
+type EncryptionContext
+{
+	Salsa20.Context In = new Salsa20.Context{};
+	Salsa20.Context Out = new Salsa20.Context{};
+	
+	void Setup(binary Key)
+	{
+		var EncryptionKey = Segment(Key as array<byte>, 0, 32) as binary;
+		In.SetupKey(EncryptionKey);
+		Out.SetupKey(EncryptionKey);
+		In.SetupIV(Segment(Key as array<byte>, 32, 8) as binary);
+		Out.SetupIV(Segment(Key as array<byte>, 48, 8) as binary);
+	}
 }
 
 type ProtocolHandler
@@ -127,6 +134,40 @@ type DecodingBuffer
     }
 }
 
+endpoint ReassemblyNode[any endpoint ep]
+    accepts DecryptedPayload issues DecryptedPayload
+{
+	DecodingBuffer in_buffer = new DecodingBuffer{Input = true};
+	DecodingBuffer out_buffer = new DecodingBuffer{Input = false};
+	
+	void SetHandler(ProtocolHandler handler)
+	{
+		in_buffer.Handler = handler;
+		out_buffer.Handler = handler;
+	}
+
+    process this accepts s:PoE.DecryptedPayload
+    {
+		in_buffer.Add(s);
+		dispatch endpoint GarbageEndpoint accepts s;
+    }
+
+    process this issues s:PoE.DecryptedPayload
+    {
+        out_buffer.Add(s);
+        dispatch endpoint GarbageEndpoint issues s;
+    }
+}
+
+autostart actor ReassemblyActor(ReassemblyNode server)
+{    
+    ~endpoint(ReassemblyNode server)
+    {
+		server.in_buffer.Clear();
+		server.out_buffer.Clear();
+    }
+}
+
 type Unknown[ushort Length]
 {
 	binary Unknown with BinaryEncoding{Length = Length};
@@ -190,12 +231,14 @@ pattern Area = enum byte
 pattern Hash = binary with BinaryEncoding{Length = 32};
 
 map<binary, bool> GameServers = {};
+map<uint, binary> EncryptionKeys = {};
 
 type GameServerInfo
 {
 	ushort Port;
 	IPv4.Address IP;
 	Unknown[20] u0;
+	binary EncryptionKey with BinaryEncoding{Length = 64};
 	
 	void Declare()
 	{
