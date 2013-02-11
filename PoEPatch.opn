@@ -72,13 +72,13 @@ endpoint ReassemblyNode[any endpoint ep]
 
     process this accepts s:TCP.VirtualDataSegment
     {
-		in_buffer.Add(s);
+		in_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
 		dispatch endpoint GarbageEndpoint accepts s;
     }
 
     process this issues s:TCP.VirtualDataSegment
     {
-        out_buffer.Add(s);
+        out_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
         dispatch endpoint GarbageEndpoint issues s;
     }
 }

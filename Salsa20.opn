@@ -1,0 +1,137 @@
+module Salsa20 with BinaryEncodingDefaults{Endian = Endian.Little};
+
+using Standard;
+using Utility;
+
+type Context
+{
+	array<uint> Input = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+	
+	pattern UIntLE = uint with BinaryEncoding{Endian = Endian.Little};
+
+	void SetupKey(binary Key)
+	{
+		stream Stream = Key;
+		
+		Input[1] = BinaryDecoder<UIntLE>(Stream);
+		Input[2] = BinaryDecoder<UIntLE>(Stream);
+		Input[3] = BinaryDecoder<UIntLE>(Stream);
+		Input[4] = BinaryDecoder<UIntLE>(Stream);
+		Input[11] = BinaryDecoder<UIntLE>(Stream);
+		Input[12] = BinaryDecoder<UIntLE>(Stream);
+		Input[13] = BinaryDecoder<UIntLE>(Stream);
+		Input[14] = BinaryDecoder<UIntLE>(Stream);
+		Input[0] = 0x61707865;
+		Input[5] = 0x3320646e;
+		Input[10] = 0x79622d32;
+		Input[15] = 0x6b206574;
+	}
+	
+	void SetupIV(binary IV)
+	{
+		stream Stream = IV;
+
+		Input[6] = BinaryDecoder<UIntLE>(Stream);
+		Input[7] = BinaryDecoder<UIntLE>(Stream);
+		Input[8] = 0;
+		Input[9] = 0;
+	}
+	
+	binary Process(binary Data)
+	{
+		if(Data == null)
+			return null;
+
+		var DataArray = Data as array<byte>;
+		array<byte> Result = [];
+		int Bytes = Data.ByteLength;
+		int Offset = 0;
+		
+		if(Bytes == 0)
+			return null;
+
+        while(true)
+		{
+			var Output = WordToByte(Input);
+			Input[8] += 1;
+			
+			if(Input[8] == 0)
+				Input[9] += 1;
+			
+			if (Bytes <= 64)
+			{
+				for (int i = 0; i < Bytes; i += 1)
+					Result += [(DataArray[Offset + i] ^ Output[i]) as byte];
+					
+				return Result as binary;
+			}
+			
+			for (int i = 0; i < 64; i += 1)
+				Result += [(DataArray[Offset + i] ^ Output[i]) as byte];
+			
+			Bytes -= 64;
+			Offset += 64;
+		}
+		return null;
+	}
+}
+
+uint Rotate(uint v, int n)
+{
+	return (v << n) | (v >> (32 - n));
+}
+
+array<byte> WordToByte(array<uint> input)
+{
+	array<uint> x = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+	int i;
+
+	for (i = 0; i < 16; i += 1)
+		x[i] = input[i];
+		
+	for (i = 20; i > 0; i -= 2)
+	{
+		x[ 4] = x[ 4] ^ Rotate(x[ 0] + x[12], 7);
+		x[ 8] = x[ 8] ^ Rotate(x[ 4] + x[ 0], 9);
+		x[12] = x[12] ^ Rotate(x[ 8] + x[ 4] ,13);
+		x[ 0] = x[ 0] ^ Rotate(x[12] + x[ 8] ,18);
+		x[ 9] = x[ 9] ^ Rotate(x[ 5] + x[ 1], 7);
+		x[13] = x[13] ^ Rotate(x[ 9] + x[ 5], 9);
+		x[ 1] = x[ 1] ^ Rotate(x[13] + x[ 9], 13);
+		x[ 5] = x[ 5] ^ Rotate(x[ 1] + x[13], 18);
+		x[14] = x[14] ^ Rotate(x[10] + x[ 6], 7);
+		x[ 2] = x[ 2] ^ Rotate(x[14] + x[10], 9);
+		x[ 6] = x[ 6] ^ Rotate(x[ 2] + x[14], 13);
+		x[10] = x[10] ^ Rotate(x[ 6] + x[ 2], 18);
+		x[ 3] = x[ 3] ^ Rotate(x[15] + x[11], 7);
+		x[ 7] = x[ 7] ^ Rotate(x[ 3] + x[15], 9);
+		x[11] = x[11] ^ Rotate(x[ 7] + x[ 3], 13);
+		x[15] = x[15] ^ Rotate(x[11] + x[ 7], 18);
+		x[ 1] = x[ 1] ^ Rotate(x[ 0] + x[ 3], 7);
+		x[ 2] = x[ 2] ^ Rotate(x[ 1] + x[ 0], 9);
+		x[ 3] = x[ 3] ^ Rotate(x[ 2] + x[ 1], 13);
+		x[ 0] = x[ 0] ^ Rotate(x[ 3] + x[ 2], 18);
+		x[ 6] = x[ 6] ^ Rotate(x[ 5] + x[ 4], 7);
+		x[ 7] = x[ 7] ^ Rotate(x[ 6] + x[ 5], 9);
+		x[ 4] = x[ 4] ^ Rotate(x[ 7] + x[ 6], 13);
+		x[ 5] = x[ 5] ^ Rotate(x[ 4] + x[ 7], 18);
+		x[11] = x[11] ^ Rotate(x[10] + x[ 9], 7);
+		x[ 8] = x[ 8] ^ Rotate(x[11] + x[10], 9);
+		x[ 9] = x[ 9] ^ Rotate(x[ 8] + x[11], 13);
+		x[10] = x[10] ^ Rotate(x[ 9] + x[ 8], 18);
+		x[12] = x[12] ^ Rotate(x[15] + x[14], 7);
+		x[13] = x[13] ^ Rotate(x[12] + x[15], 9);
+		x[14] = x[14] ^ Rotate(x[13] + x[12], 13);
+		x[15] = x[15] ^ Rotate(x[14] + x[13], 18);
+	}
+	
+	array<byte> result = [];
+	
+	for (i = 0; i < 16; i += 1)
+	{
+		var v = x[i] + input[i];
+		result += [v as byte, (v >> 8) as byte, (v >> 16) as byte, (v >> 24) as byte];
+	}
+	
+	return result;
+}

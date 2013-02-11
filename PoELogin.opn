@@ -12,14 +12,19 @@ using Standard;
 using PoE;
 using TCP;
 using Utility;
+using Salsa20;
 
 endpoint Server
+	accepts KeyExchange
 	accepts LoginRequest
 	accepts ChangePasswordRequest
 	accepts DeleteCharacterRequest
 	accepts PlayRequest
 	accepts CreateCharRequest
 	accepts RequestLeagueInfo
+	accepts UnknownPacket
+	issues Salsa20Info
+	issues KeyExchange
 	issues LoginRequestResult
 	issues ChangePasswordResult
 	issues LeagueUpdate
@@ -39,34 +44,34 @@ type Handler
 		
 		switch (s.CurrentByte)
 		{
-			case 1 =>
-				msg = BinaryDecoder<LoginRequest>(s);
 			case 2 =>
-				msg = BinaryDecoder<LoginRequestResult>(s);
+				msg = BinaryDecoder<LoginRequest>(s);
 			case 3 =>
-				msg = BinaryDecoder<ChangePasswordRequest>(s);
+				msg = BinaryDecoder<LoginRequestResult>(s);
 			case 4 =>
-				msg = BinaryDecoder<ChangePasswordResult>(s);
+				msg = BinaryDecoder<ChangePasswordRequest>(s);
 			case 5 =>
-				msg = BinaryDecoder<DeleteCharacterRequest>(s);
+				msg = BinaryDecoder<ChangePasswordResult>(s);
 			case 6 =>
-				msg = BinaryDecoder<LeagueUpdate>(s);
+				msg = BinaryDecoder<DeleteCharacterRequest>(s);
 			case 7 =>
-				msg = BinaryDecoder<PlayRequest>(s);
-			case 9 =>
-				msg = BinaryDecoder<CreateCharRequest>(s);
-			case 0xA =>
 				msg = BinaryDecoder<LeagueUpdate>(s);
-			case 0xB =>
+			case 8 =>
+				msg = BinaryDecoder<PlayRequest>(s);
+			case 10 =>
+				msg = BinaryDecoder<CreateCharRequest>(s);
+			case 11 =>
+				msg = BinaryDecoder<LeagueUpdate>(s);
+			case 12 =>
 				game_server_data = BinaryDecoder<GameServerData>(s);
 				if (game_server_data != nothing)
 					game_server_data.GameServer.Declare();
 				msg = game_server_data;
-			case 0xD =>
+			case 13 =>
 				msg = BinaryDecoder<Unknown0>(s);
-			case 0xE =>
+			case 14 =>
 				msg = BinaryDecoder<RequestLeagueInfo>(s);
-			case 0xF =>
+			case 16 =>
 				msg = BinaryDecoder<LeagueInfo>(s);
 			default =>
 				unsized.Value = true;
@@ -88,18 +93,18 @@ type Handler
 ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
 
 endpoint ReassemblyNode[any endpoint ep]
-    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+    accepts PoE.DecryptedPayload issues PoE.DecryptedPayload
 {
 	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
 	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
 
-    process this accepts s:TCP.VirtualDataSegment
+    process this accepts s:PoE.DecryptedPayload
     {
 		in_buffer.Add(s);
 		dispatch endpoint GarbageEndpoint accepts s;
     }
 
-    process this issues s:TCP.VirtualDataSegment
+    process this issues s:PoE.DecryptedPayload
     {
         out_buffer.Add(s);
         dispatch endpoint GarbageEndpoint issues s;
@@ -115,20 +120,73 @@ autostart actor ReassemblyActor(ReassemblyNode server)
     }
 }
 
+message Salsa20Info
+{
+	binary EncryptionKey;
+	binary EncryptionIV;
+	binary DecryptionIV;
+}
+
 autostart actor ServerOverTCP(TCP.Server server)
 {
 	array<ushort> ServerPorts = [20481];
+	bool ReceivedKey = false;
+	bool SentKey = false;
+	binary Key = null;
+	Salsa20.Context In = new Salsa20.Context{};
+	Salsa20.Context Out = new Salsa20.Context{};
+	
+	void GetKey()
+	{
+		if(Key == null)
+		{
+			Key = PoE.Keys[0];
+			var EncryptionKey = Segment(Key as array<byte>, 0, 32) as binary;
+			var EncryptionIV = Segment(Key as array<byte>, 32, 8) as binary;
+			var DecryptionIV = Segment(Key as array<byte>, 48, 8) as binary;
+			In.SetupKey(EncryptionKey);
+			Out.SetupKey(EncryptionKey);
+			In.SetupIV(EncryptionIV);
+			Out.SetupIV(DecryptionIV);
+			dispatch endpoint Server issues new Salsa20Info{EncryptionKey = EncryptionKey, EncryptionIV = EncryptionIV, DecryptionIV = DecryptionIV};
+		}
+	}
 
     process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
     {
-       var e = endpoint ReassemblyNode[server];
-       dispatch e issues s;
+		if(!SentKey)
+		{
+			SentKey = true;
+			dispatch endpoint GarbageEndpoint issues s;
+			dispatch endpoint Server issues (BinaryDecoder<KeyExchange>(s.Payload) as any message);
+		}
+		else
+		{
+			GetKey();
+		
+			var data = Out.Process(s.Payload);
+			var e = endpoint ReassemblyNode[server];
+			dispatch e issues (new PoE.DecryptedPayload{Payload = data} as any message);
+		}
     }
 	
     process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
     {
-        var e = endpoint ReassemblyNode[server];
-        dispatch e accepts s;
+		if(!ReceivedKey)
+		{
+			ReceivedKey = true;
+			dispatch endpoint GarbageEndpoint accepts s;
+			dispatch endpoint Server accepts (BinaryDecoder<KeyExchange>(s.Payload) as any message);
+		}
+		else
+		{
+			GetKey();
+			
+			var data = In.Process(s.Payload);
+			var e = endpoint ReassemblyNode[server];
+			dispatch e accepts (new PoE.DecryptedPayload{Payload = data} as any message);
+		}
+		
     }
 }
 
@@ -145,6 +203,12 @@ pattern StatusType = enum byte
 	NameTaken = 0x15,
 	NameInvalid = 0x16
 };
+
+message KeyExchange
+{
+    byte Id;
+	binary PublicKey with BinaryEncoding{Length = 128};
+}
 
 message LoginRequest
 {

@@ -1,0 +1,36 @@
+protocol PoEKey with
+BinaryEncodingDefaults{Endian = Endian.Big},
+Visualization{AliasName = "PoE"},
+Documentation
+{
+    ProtocolName = "Path of Exile Private Key",
+    ShortName = "PoEKey",
+    Description = ""
+};
+
+using Standard;
+using PoE;
+using TCP;
+using Utility;
+using Etw;
+using EtwEvent;
+
+const guid PoeKeyProvider = {FD3DF53C-5077-4A8C-9EE8-817388082880};
+
+endpoint PrivateKeyDest
+    accepts PrivateKey;
+
+autostart actor PrivateKeyOverEtwEvent(EtwEvent.Node etw)
+{
+    process etw accepts etwMsg:EtwProviderMsg where value.EventRecord.Header.ProviderId == PoeKeyProvider
+    {
+		PoE.Keys += [etwMsg.Payload];
+		var key = BinaryDecoder<PrivateKey>(etwMsg.Payload) as (any message);
+        dispatch (endpoint PrivateKeyDest) accepts key;
+    }
+}
+
+message PrivateKey
+{
+	binary Key with BinaryEncoding{Length = 0x40};
+}

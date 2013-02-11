@@ -9,6 +9,20 @@ type BoolWrapper
 {
 	bool Value;
 }
+/*
+optional any message StripOptional<T>(optional T msg)
+{
+	if(msg == nothing)
+		return null;
+	
+	return msg as T;
+}
+*/
+
+message DecryptedPayload
+{
+	binary Payload;
+}
 
 type ProtocolHandler
 {
@@ -58,7 +72,7 @@ type DecodingBuffer
 		}
 	}
 	
-	void Add(TCP.VirtualDataSegment segment)
+	void Add(DecryptedPayload segment)
 	{
 		Buffer += segment.Payload;
         Segments += [segment.Payload.ByteLength];
@@ -176,6 +190,7 @@ pattern Area = enum byte
 pattern Hash = binary with BinaryEncoding{Length = 32};
 
 map<binary, bool> GameServers = {};
+array<binary> Keys = [];
 
 type GameServerInfo
 {
