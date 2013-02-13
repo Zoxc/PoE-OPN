@@ -19,9 +19,10 @@ endpoint Server
 	accepts SendChat
 	accepts Exit
 	accepts Ping
-	accepts Unknown2
+	accepts UseWorldObject
 	accepts UseOnLocation
 	accepts PickItem
+	accepts DropItem
 	accepts PlaceItem
 	accepts PickSocket
 	accepts PlaceSocket
@@ -29,13 +30,24 @@ endpoint Server
 	accepts EquipSkill
 	accepts Revive
 	accepts UseObject
-	accepts Unknown1
+	accepts UsePotObject
+	accepts UseItemOnItem
+	accepts LoadComplete
+	accepts NPCInteract
+	accepts CloseNPCMenu
+	accepts BuyItem
 	accepts JoinParty
 	accepts LeaveParty
 	accepts UpdatePublicParty
 	accepts RequestPartyDetails
 	accepts RequestPartyList
+	accepts CloseSellMenu
+	accepts StageItemForSelling
+	accepts UnstageItemForSelling
+	accepts SellItems
 	accepts SelectStashTab
+	accepts CancelMatchQueue
+	accepts QueueMatch
 	accepts UseWeaponSet
 	accepts UnknownPacket
 	issues ReceiveChat
@@ -47,15 +59,21 @@ endpoint Server
 	issues PassivePoints
 	issues AssignedSkills
 	issues YouDied
+	issues NPCMenuOpened
 	issues PlayerUpdate
 	issues PlayerLeftParty
 	issues PartyDetails
 	issues LeftParty
 	issues PartyList
+	issues ShopUpdate
+	issues SellMenuClosed
 	issues InventoryUpdate
 	issues NewInventory
 	issues Friend
 	issues UseWeaponSetAck
+	issues QueuedForMatch
+	issues CancelledMatchQueue
+	issues MatchList
 	issues ObjectAdd
 	issues ObjectUpdate
 	issues ObjectRemove
@@ -110,7 +128,6 @@ endpoint DecodeNode[any endpoint server]
 					return null;
 				return m as any message;
 			case 0xB =>
-				unsized.Value = true;
 				var m = BinaryDecoder<EnterResult>(s);
 				if(m == nothing)
 					return null;
@@ -121,7 +138,7 @@ endpoint DecodeNode[any endpoint server]
 					return null;
 				return m as any message;
 			case 0xD =>
-				var m = BinaryDecoder<Unknown2>(s);
+				var m = BinaryDecoder<UseWorldObject>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -144,6 +161,11 @@ endpoint DecodeNode[any endpoint server]
 				return m as any message;
 			case 0x11 =>
 				var m = BinaryDecoder<PickItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x12 =>
+				var m = BinaryDecoder<DropItem>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -197,8 +219,38 @@ endpoint DecodeNode[any endpoint server]
 				if(m == nothing)
 					return null;
 				return m as any message;
+			case 0x25 =>
+				var m = BinaryDecoder<UsePotObject>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x26 =>
+				var m = BinaryDecoder<UseItemOnItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x29 =>
-				var m = BinaryDecoder<Unknown1>(s);
+				var m = BinaryDecoder<LoadComplete>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x2D =>
+				var m = BinaryDecoder<NPCInteract>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x2E =>
+				var m = BinaryDecoder<NPCMenuOpened>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x2F =>
+				var m = BinaryDecoder<CloseNPCMenu>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x31 =>
+				var m = BinaryDecoder<BuyItem>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -252,6 +304,36 @@ endpoint DecodeNode[any endpoint server]
 				if(m == nothing)
 					return null;
 				return m as any message;
+			case 0x47 =>
+				var m = BinaryDecoder<CloseSellMenu>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x48 =>
+				var m = BinaryDecoder<StageItemForSelling>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x49 =>
+				var m = BinaryDecoder<UnstageItemForSelling>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x4A =>
+				var m = BinaryDecoder<SellItems>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x4C =>
+				var m = BinaryDecoder<ShopUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x4D =>
+				var m = BinaryDecoder<SellMenuClosed>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x52 =>
 				unsized.Value = true;
 				var m = BinaryDecoder<InventoryUpdate>(s);
@@ -281,6 +363,31 @@ endpoint DecodeNode[any endpoint server]
 				return m as any message;
 			case 0x61 => 
 				var m = BinaryDecoder<UseWeaponSetAck>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x66 => 
+				var m = BinaryDecoder<QueuedForMatch>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x67 => 
+				var m = BinaryDecoder<CancelledMatchQueue>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x68 => 
+				var m = BinaryDecoder<CancelMatchQueue>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x69 => 
+				var m = BinaryDecoder<MatchList>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x6A => 
+				var m = BinaryDecoder<QueueMatch>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -423,25 +530,36 @@ message Unknown0
 	array<byte> u1 with BinaryEncoding{Length = Count};
 }
 
-message Unknown1
+message LoadComplete
 {
     byte Id;
-	uint u0;
-	uint u1;
+	uint TileHash;
+	uint DoodadHash;
 }
 
 message EnterResult
 {
-    byte Id;
-	//PoE.Unknown[7] u0;
-	//PoE.String League;
-	//uint MapSeed;
+	byte Id;
+	ushort Count;
+	array<ushort> u0 with BinaryEncoding{Length = Count};
+	array<byte> u1 with BinaryEncoding{Length = Count};
+	byte u2;
+	uint u3;
+	PoE.String League;
+	uint MapSeed;
+	uint u4;
+	ushort u5;
+	byte HashCount;
+	array<uint> Hashes with BinaryEncoding{Length = HashCount};
+	ushort u6;
 }
 
-message Unknown2
+message UseWorldObject
 {
     byte Id;
-	PoE.Unknown[9] u0;
+	uint ObjectId;
+	PoE.Unknown[3] u0;
+	ushort ActionId;
 }
 
 message UseOnLocation
@@ -485,6 +603,11 @@ message PickItem
     byte Id;
 	uint ItemId;
 	ItemContainer Container;
+}
+
+message DropItem
+{
+    byte Id;
 }
 
 message PlaceItem
@@ -554,6 +677,21 @@ message UseObject
     byte Id;
 	uint u0;
 	uint u1;
+}
+
+message UsePotObject
+{
+    byte Id;
+	uint PotIndex;
+}
+
+message UseItemOnItem
+{
+    byte Id;
+	uint u0;
+	uint u1;
+	uint u2;
+	uint u3;
 }
 
 message JoinParty
@@ -650,6 +788,46 @@ message PartyList
 	array<PartyListEntry> Parties with BinaryEncoding{Length = PartyCount};
 }
 
+message CloseSellMenu
+{
+    byte Id;
+	uint u0;
+}
+
+message StageItemForSelling
+{
+    byte Id;
+	uint u0;
+	uint ItemId;
+	ushort u2;
+}
+
+message UnstageItemForSelling
+{
+    byte Id;
+	uint ItemId;
+}
+
+message SellItems
+{
+    byte Id;
+	byte u0;
+	uint u1;
+}
+
+message ShopUpdate
+{
+    byte Id;
+	PoE.Unknown[16] u0;
+	PoE.String Shopkeeper;
+}
+
+message SellMenuClosed
+{
+    byte Id;
+	PoE.Unknown[5] u0;
+}
+
 message InventoryUpdate
 {
     byte Id;
@@ -684,6 +862,78 @@ message UseWeaponSetAck
 {
     byte Id;
 	bool Primary;
+}
+
+message QueuedForMatch
+{
+    byte Id;
+    byte u0;
+	PoE.String Match;
+}
+
+message CancelledMatchQueue
+{
+    byte Id;
+}
+
+message CancelMatchQueue
+{
+    byte Id;
+}
+
+pattern NPCInteraction = byte;
+/*
+pattern NPCInteraction = enum byte
+{
+	Buy = 11,
+	Sell = 12,
+	JoinPvP = 13
+};
+*/
+message NPCInteract
+{
+    byte Id;
+    byte MenuIndex;
+}
+
+message NPCMenuOpened
+{
+    byte Id;
+	uint MenuId;
+	byte u0;
+}
+
+message CloseNPCMenu
+{
+    byte Id;
+}
+
+message BuyItem
+{
+    byte Id;
+	PoE.Unknown[17] u0;
+}
+
+type Match
+{
+	PoE.String Name;
+	uint QueuedPlayerCount;
+	ushort u1;
+	ushort MaxLevel;
+	byte u2;
+}
+
+message MatchList
+{
+    byte Id;
+	ushort MatchCount;
+	array<Match> Matches with BinaryEncoding{Length = MatchCount};
+}
+
+message QueueMatch
+{
+    byte Id;
+	ushort MatchIndex;
 }
 
 message ObjectAdd
