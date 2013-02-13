@@ -23,8 +23,11 @@ endpoint Server
 	accepts UseOnLocation
 	accepts PickItem
 	accepts PlaceItem
+	accepts PickSocket
+	accepts PlaceSocket
 	accepts SpendPassivePoint
 	accepts EquipSkill
+	accepts Revive
 	accepts UseObject
 	accepts Unknown1
 	accepts JoinParty
@@ -32,20 +35,25 @@ endpoint Server
 	accepts UpdatePublicParty
 	accepts RequestPartyDetails
 	accepts RequestPartyList
+	accepts SelectStashTab
 	accepts UseWeaponSet
 	accepts UnknownPacket
 	issues ReceiveChat
 	issues Ping
 	issues EnterResult
 	issues Unknown0
+	issues Exit
 	issues NewGameServer
 	issues PassivePoints
 	issues AssignedSkills
+	issues YouDied
 	issues PlayerUpdate
 	issues PlayerLeftParty
 	issues PartyDetails
 	issues LeftParty
 	issues PartyList
+	issues InventoryUpdate
+	issues NewInventory
 	issues Friend
 	issues UseWeaponSetAck
 	issues ObjectAdd
@@ -101,13 +109,13 @@ endpoint DecodeNode[any endpoint server]
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0xB => // bumped
+			case 0xB =>
 				unsized.Value = true;
 				var m = BinaryDecoder<EnterResult>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0xC => // bumped
+			case 0xC =>
 				var m = BinaryDecoder<Unknown0>(s);
 				if(m == nothing)
 					return null;
@@ -119,6 +127,11 @@ endpoint DecodeNode[any endpoint server]
 				return m as any message;
 			case 0xE =>
 				var m = BinaryDecoder<UseOnLocation>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0xF =>
+				var m = BinaryDecoder<Exit>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -136,6 +149,16 @@ endpoint DecodeNode[any endpoint server]
 				return m as any message;
 			case 0x13 =>
 				var m = BinaryDecoder<PlaceItem>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x14 =>
+				var m = BinaryDecoder<PickSocket>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x15 =>
+				var m = BinaryDecoder<PlaceSocket>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -159,77 +182,104 @@ endpoint DecodeNode[any endpoint server]
 				if(m == nothing)
 					return null;
 				return m as any message;
+			case 0x22 =>
+				var m = BinaryDecoder<Revive>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x23 =>
+				var m = BinaryDecoder<YouDied>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0x24 =>
 				var m = BinaryDecoder<UseObject>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x28 =>
+			case 0x29 =>
 				var m = BinaryDecoder<Unknown1>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x37 =>
+			case 0x38 =>
 				var m = BinaryDecoder<JoinParty>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x38 =>
+			case 0x39 =>
 				var m = BinaryDecoder<LeaveParty>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3A =>
+			case 0x3B =>
 				var m = BinaryDecoder<UpdatePublicParty>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3B =>
+			case 0x3C =>
 				var m = BinaryDecoder<RequestPartyDetails>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3C =>
+			case 0x3D =>
 				var m = BinaryDecoder<PlayerUpdate>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3D =>
+			case 0x3E =>
 				var m = BinaryDecoder<PlayerLeftParty>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3E =>
+			case 0x3F =>
 				var m = BinaryDecoder<PartyDetails>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x3F =>
+			case 0x40 =>
 				var m = BinaryDecoder<LeftParty>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x41 =>
+			case 0x42 =>
 				var m = BinaryDecoder<RequestPartyList>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x42 =>
+			case 0x43 =>
 				var m = BinaryDecoder<PartyList>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x57 =>
+			case 0x52 =>
+				unsized.Value = true;
+				var m = BinaryDecoder<InventoryUpdate>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x53 =>
+				unsized.Value = true;
+				var m = BinaryDecoder<NewInventory>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x56 =>
+				var m = BinaryDecoder<SelectStashTab>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
+			case 0x58 =>
 				var m = BinaryDecoder<Friend>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x5D =>
+			case 0x60 =>
 				var m = BinaryDecoder<UseWeaponSet>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
-			case 0x5E =>
+			case 0x61 => 
 				var m = BinaryDecoder<UseWeaponSetAck>(s);
 				if(m == nothing)
 					return null;
@@ -349,13 +399,15 @@ message ReceiveChat
     byte Id;
     PoE.String Character;
     PoE.String Message;
-	ushort ItemCount;
+	byte u0;
+	byte ItemCount;
 	//array<LinkedItem> Items with BinaryEncoding{Length = ItemCount};
 }
 
 message Exit
 {
     byte Id;
+    byte u0;
 }
 
 message Ping
@@ -381,9 +433,9 @@ message Unknown1
 message EnterResult
 {
     byte Id;
-	uint u0;
-	PoE.String League;
-	uint MapSeed;
+	//PoE.Unknown[7] u0;
+	//PoE.String League;
+	//uint MapSeed;
 }
 
 message Unknown2
@@ -410,6 +462,8 @@ message NewGameServer
 	PoE.GameServerInfo GameServer;
 }
 
+pattern ItemContainer = uint;
+/*
 pattern ItemContainer = enum uint
 {
 	Inventory = 1,
@@ -424,7 +478,7 @@ pattern ItemContainer = enum uint
 	Boots = 10,
 	Belt = 11,
 	Flasks = 12
-};
+};*/
 
 message PickItem
 {
@@ -439,6 +493,22 @@ message PlaceItem
 	ItemContainer Container;
 	uint X;
 	uint Y;
+}
+
+message PickSocket
+{
+    byte Id;
+	uint u0;
+	uint u1;
+	uint u2;
+}
+
+message PlaceSocket
+{
+    byte Id;
+	uint u0;
+	uint u1;
+	uint u2;
 }
 
 message PassivePoints
@@ -460,13 +530,23 @@ message EquipSkill
 {
     byte Id;
 	PoE.SkillSlot Slot;
-	PoE.Skill Skill;
+	PoE.SkillLE Skill;
 }
 
 message AssignedSkills
 {
     byte Id;
-	array<PoE.SkillLE> Skills with BinaryEncoding{Length = 7};
+	array<PoE.Skill> Skills with BinaryEncoding{Length = 8};
+}
+
+message Revive
+{
+    byte Id;
+}
+
+message YouDied
+{
+    byte Id;
 }
 
 message UseObject
@@ -507,6 +587,7 @@ type CharacterInfo
 	PoE.Class Class;
 	PoE.Unknown[3] u0;
 	PoE.Area Area;
+	byte u1;
 }
 
 message PlayerUpdate
@@ -542,7 +623,7 @@ message PartyDetails
 	Party Party;
     byte u0;
     byte PlayerCount;
-	array<PartyPlayer> Skills with BinaryEncoding{Length = PlayerCount};
+	array<PartyPlayer> Players with BinaryEncoding{Length = PlayerCount};
 }
 
 message LeftParty
@@ -569,6 +650,23 @@ message PartyList
 	array<PartyListEntry> Parties with BinaryEncoding{Length = PartyCount};
 }
 
+message InventoryUpdate
+{
+    byte Id;
+}
+
+message NewInventory
+{
+    byte Id;
+}
+
+message SelectStashTab
+{
+    byte Id;
+	byte u0;
+    byte TabIndex;
+}
+
 message Friend
 {
     byte Id;
@@ -586,7 +684,6 @@ message UseWeaponSetAck
 {
     byte Id;
 	bool Primary;
-	uint u0;
 }
 
 message ObjectAdd

@@ -181,7 +181,7 @@ endpoint DecodeNode[any endpoint server]
 
 autostart actor ServerOverTCP(TCP.Server server)
 {
-	array<ushort> ServerPorts = [20481];
+	array<ushort> ServerPorts = [20480, 20481];
 	
     process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
     {

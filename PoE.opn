@@ -81,6 +81,9 @@ type DecodingBuffer
 	
 	void Add(DecryptedPayload segment)
 	{
+		if(segment.Payload == null)
+			return;
+		
 		Buffer += segment.Payload;
         Segments += [segment.Payload.ByteLength];
         Messages += [segment];
@@ -201,14 +204,18 @@ pattern Class = enum byte
 	Shadow = 6
 };
 
+/*
 pattern Skill = enum ushort
 {
 	DefaultAttack = 0x4000,
 	MoveOnly = 0x2909,
 	LightningArrow = 0x8004
 };
+*/
 
-pattern SkillLE = Skill with BinaryEncoding{Endian = Endian.Little};
+pattern Skill = ushort;
+
+pattern SkillLE = ushort with BinaryEncoding{Endian = Endian.Little};
 
 pattern SkillSlot = enum byte
 {
@@ -222,11 +229,14 @@ pattern SkillSlot = enum byte
 };
 
 // Index into WorldAreas.dat
+/*
 pattern Area = enum byte
 {
 	ForestEncampment = 0x51,
 	OldFields = 0x53
 };
+*/
+pattern Area = byte;
 
 pattern Hash = binary with BinaryEncoding{Length = 32};
 
