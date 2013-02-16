@@ -10,7 +10,7 @@ Documentation
 
 using Standard;
 using PoE;
-using TCP;
+using VirtualTransport;
 using Utility;
 using Salsa20;
 using PoEKey;
@@ -40,7 +40,7 @@ type Handler
 }
 
 endpoint DecodeNode[any endpoint server]
-    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+    accepts VirtualDataSegment issues VirtualDataSegment
 {
 	EncryptionContext Encryption = new EncryptionContext{};
 	bool ReceivedKey = false;
@@ -100,8 +100,9 @@ endpoint DecodeNode[any endpoint server]
 				var m = BinaryDecoder<GameServerData>(s);
 				if(m == nothing)
 					return null;
-				PoE.EncryptionKeys[m.ConnectionId] = m.GameServer.EncryptionKey;
-				m.GameServer.Declare();
+				var mf = m as GameServerData;
+				PoE.EncryptionKeys[mf.ConnectionId] = mf.GameServer.EncryptionKey;
+				mf.GameServer.Declare();
 				return m as any message;
 			case 14 =>
 				var m = BinaryDecoder<Unknown0>(s);
@@ -146,7 +147,7 @@ endpoint DecodeNode[any endpoint server]
 		}
 	}
 
-    process this accepts s:TCP.VirtualDataSegment
+    process this accepts s:VirtualDataSegment
     {
 		if(!ReceivedKey)
 		{
@@ -162,7 +163,7 @@ endpoint DecodeNode[any endpoint server]
 		}
     }
 
-    process this issues s:TCP.VirtualDataSegment
+    process this issues s:VirtualDataSegment
     {
 		if(!SentKey)
 		{
@@ -179,17 +180,17 @@ endpoint DecodeNode[any endpoint server]
     }
 }
 
-autostart actor ServerOverTCP(TCP.Server server)
+autostart actor ServerOverTCP(VirtualTransport.Server server)
 {
 	array<ushort> ServerPorts = [20480, 20481];
 	
-    process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
+    process server issues s:VirtualDataSegment where (s.SourcePort in ServerPorts)
     {
 		var e = endpoint DecodeNode[server];
 		dispatch e issues s;
     }
 	
-    process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
+    process server accepts s:VirtualDataSegment where (s.DestinationPort in ServerPorts)
     {
 		var e = endpoint DecodeNode[server];
 		dispatch e accepts s;

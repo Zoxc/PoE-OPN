@@ -10,7 +10,7 @@ Documentation
 
 using Standard;
 using PoE;
-using TCP;
+using VirtualTransport;
 using Utility;
 
 endpoint Server
@@ -82,18 +82,18 @@ type Handler
 ProtocolHandler handler = new ProtocolHandler{Decode = Handler.Decode, Dispatch = Handler.Dispatch};
 
 endpoint ReassemblyNode[any endpoint ep]
-    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+    accepts VirtualDataSegment issues VirtualDataSegment
 {
 	DecodingBuffer in_buffer = new DecodingBuffer{Input = true, Handler = handler};
 	DecodingBuffer out_buffer = new DecodingBuffer{Input = false, Handler = handler};
 
-    process this accepts s:TCP.VirtualDataSegment
+    process this accepts s:VirtualDataSegment
     {
 		in_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
 		dispatch endpoint GarbageEndpoint accepts s;
     }
 
-    process this issues s:TCP.VirtualDataSegment
+    process this issues s:VirtualDataSegment
     {
         out_buffer.Add(new PoE.DecryptedPayload{Payload = s.Payload});
         dispatch endpoint GarbageEndpoint issues s;
@@ -109,17 +109,17 @@ autostart actor ReassemblyActor(ReassemblyNode server)
     }
 }
 
-autostart actor ServerOverTCP(TCP.Server server)
+autostart actor ServerOverTCP(VirtualTransport.Server server)
 {
 	array<ushort> ServerPorts = [12992, 12993, 12994, 12995];
 
-    process server issues s:TCP.VirtualDataSegment where (s.SourcePort in ServerPorts)
+    process server issues s:VirtualDataSegment where (s.SourcePort in ServerPorts)
     {
        var e = endpoint ReassemblyNode[server];
        dispatch e issues s;
     }
 	
-    process server accepts s:TCP.VirtualDataSegment where (s.DestinationPort in ServerPorts)
+    process server accepts s:VirtualDataSegment where (s.DestinationPort in ServerPorts)
     {
         var e = endpoint ReassemblyNode[server];
         dispatch e accepts s;

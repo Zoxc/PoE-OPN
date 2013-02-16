@@ -10,6 +10,7 @@ Documentation
 
 using Standard;
 using PoE;
+using VirtualTransport;
 using TCP;
 using Utility;
 
@@ -52,7 +53,7 @@ endpoint Server
 	accepts UnknownPacket
 	issues ReceiveChat
 	issues Ping
-	issues EnterResult
+	issues MapParameters
 	issues Unknown0
 	issues Exit
 	issues NewGameServer
@@ -82,7 +83,7 @@ endpoint Server
 client endpoint Client connected to Server;
 
 endpoint DecodeNode[any endpoint server]
-    accepts TCP.VirtualDataSegment issues TCP.VirtualDataSegment
+    accepts VirtualDataSegment issues VirtualDataSegment
 {
 	EncryptionContext Encryption = new EncryptionContext{};
 	bool SentInfo = false;
@@ -127,8 +128,13 @@ endpoint DecodeNode[any endpoint server]
 				if(m == nothing)
 					return null;
 				return m as any message;
+			case 0xA =>
+				var m = BinaryDecoder<MapParameters>(s);
+				if(m == nothing)
+					return null;
+				return m as any message;
 			case 0xB =>
-				var m = BinaryDecoder<EnterResult>(s);
+				var m = BinaryDecoder<Unknown0>(s);
 				if(m == nothing)
 					return null;
 				return m as any message;
@@ -156,8 +162,9 @@ endpoint DecodeNode[any endpoint server]
 				var m = BinaryDecoder<NewGameServer>(s);
 				if(m == nothing)
 					return null;
-				PoE.EncryptionKeys[m.ConnectionId] = m.GameServer.EncryptionKey;
-				m.GameServer.Declare();
+				var mf = m as NewGameServer;
+				PoE.EncryptionKeys[mf.ConnectionId] = mf.GameServer.EncryptionKey;
+				mf.GameServer.Declare();
 				return m as any message;
 			case 0x11 =>
 				var m = BinaryDecoder<PickItem>(s);
@@ -425,12 +432,12 @@ endpoint DecodeNode[any endpoint server]
 			dispatch endpoint Server issues msg;
 	}
 	
-    process this accepts s:TCP.VirtualDataSegment
+    process this accepts s:VirtualDataSegment
     {
 		if(!SentInfo)
 		{
 			SentInfo = true;
-			var Request = BinaryDecoder<EnterRequest>(s.Payload);
+			var Request = BinaryDecoder<EnterRequest>(s.Payload) as EnterRequest;
 			var Key = PoE.EncryptionKeys[Request.ConnectionId];
 			Encryption.Setup(Key);
 		
@@ -447,7 +454,7 @@ endpoint DecodeNode[any endpoint server]
 		}
     }
 
-    process this issues s:TCP.VirtualDataSegment
+    process this issues s:VirtualDataSegment
     {
 		var data = Encryption.Out.Process(s.Payload);
 		var e = endpoint PoE.ReassemblyNode[server];
@@ -455,15 +462,15 @@ endpoint DecodeNode[any endpoint server]
     }
 }
 
-autostart actor ServerOverTCP(TCP.Server server)
+autostart actor ServerOverTCP(VirtualTransport.Server server)
 {
-	process server issues s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+	process server issues s:VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
 	{
 		var e = endpoint DecodeNode[server];
 		dispatch e issues s;
 	}
 
-	process server accepts s:TCP.VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
+	process server accepts s:VirtualDataSegment where ((s#SourceAddrBin as binary) in PoE.GameServers) || ((s#DestinationAddrBin as binary) in PoE.GameServers)
 	{
 		var e = endpoint DecodeNode[server];
 		dispatch e accepts s;
@@ -537,14 +544,10 @@ message LoadComplete
 	uint DoodadHash;
 }
 
-message EnterResult
+message MapParameters
 {
 	byte Id;
-	ushort Count;
-	array<ushort> u0 with BinaryEncoding{Length = Count};
-	array<byte> u1 with BinaryEncoding{Length = Count};
-	byte u2;
-	uint u3;
+	uint AreaHash; // A column in WorldAreas.dat
 	PoE.String League;
 	uint MapSeed;
 	uint u4;

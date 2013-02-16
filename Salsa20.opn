@@ -13,14 +13,14 @@ type Context
 	{
 		stream Stream = Key;
 		
-		Input[1] = BinaryDecoder<UIntLE>(Stream);
-		Input[2] = BinaryDecoder<UIntLE>(Stream);
-		Input[3] = BinaryDecoder<UIntLE>(Stream);
-		Input[4] = BinaryDecoder<UIntLE>(Stream);
-		Input[11] = BinaryDecoder<UIntLE>(Stream);
-		Input[12] = BinaryDecoder<UIntLE>(Stream);
-		Input[13] = BinaryDecoder<UIntLE>(Stream);
-		Input[14] = BinaryDecoder<UIntLE>(Stream);
+		Input[1] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[2] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[3] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[4] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[11] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[12] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[13] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[14] = BinaryDecoder<UIntLE>(Stream) as uint;
 		Input[0] = 0x61707865;
 		Input[5] = 0x3320646e;
 		Input[10] = 0x79622d32;
@@ -31,8 +31,8 @@ type Context
 	{
 		stream Stream = IV;
 
-		Input[6] = BinaryDecoder<UIntLE>(Stream);
-		Input[7] = BinaryDecoder<UIntLE>(Stream);
+		Input[6] = BinaryDecoder<UIntLE>(Stream) as uint;
+		Input[7] = BinaryDecoder<UIntLE>(Stream) as uint;
 		Input[8] = 0;
 		Input[9] = 0;
 	}

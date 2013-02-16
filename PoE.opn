@@ -1,7 +1,6 @@
 protocol PoE with BinaryEncodingDefaults{Endian = Endian.Big};
 
 using Standard;
-using TCP;
 using Utility;
 using IPv4;
 using Salsa20;
