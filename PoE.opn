@@ -200,21 +200,19 @@ pattern Class = enum byte
 	Witch = 3,
 	Duelist = 4,
 	Templar = 5,
-	Shadow = 6
+	Shadow = 6,
+	...
 };
 
-/*
 pattern Skill = enum ushort
 {
 	DefaultAttack = 0x4000,
 	MoveOnly = 0x2909,
-	LightningArrow = 0x8004
+	LightningArrow = 0x8004,
+	...
 };
-*/
 
-pattern Skill = ushort;
-
-pattern SkillLE = ushort with BinaryEncoding{Endian = Endian.Little};
+pattern SkillLE = Skill with BinaryEncoding{Endian = Endian.Little};
 
 pattern SkillSlot = enum byte
 {
@@ -224,18 +222,17 @@ pattern SkillSlot = enum byte
 	QKey = 3,
 	WKey = 4,
 	EKey = 5,
-	RKey = 6
+	RKey = 6,
+	...
 };
 
 // Index into WorldAreas.dat
-/*
 pattern Area = enum byte
 {
 	ForestEncampment = 0x51,
-	OldFields = 0x53
+	OldFields = 0x53,
+	...
 };
-*/
-pattern Area = byte;
 
 pattern Hash = binary with BinaryEncoding{Length = 32};
 

@@ -583,8 +583,6 @@ message NewGameServer
 	PoE.GameServerInfo GameServer;
 }
 
-pattern ItemContainer = uint;
-/*
 pattern ItemContainer = enum uint
 {
 	Inventory = 1,
@@ -598,8 +596,9 @@ pattern ItemContainer = enum uint
 	Gloves = 9,
 	Boots = 10,
 	Belt = 11,
-	Flasks = 12
-};*/
+	Flasks = 12,
+	...
+};
 
 message PickItem
 {
@@ -884,15 +883,6 @@ message CancelMatchQueue
     byte Id;
 }
 
-pattern NPCInteraction = byte;
-/*
-pattern NPCInteraction = enum byte
-{
-	Buy = 11,
-	Sell = 12,
-	JoinPvP = 13
-};
-*/
 message NPCInteract
 {
     byte Id;

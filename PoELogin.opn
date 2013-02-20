@@ -208,7 +208,8 @@ pattern StatusType = enum byte
 	AccountDoesntExist = 0x05,
 	WrongPassword = 0x06,
 	NameTaken = 0x15,
-	NameInvalid = 0x16
+	NameInvalid = 0x16,
+	...
 };
 
 message KeyExchange

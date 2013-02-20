@@ -88,12 +88,11 @@ uint Rotate(uint v, int n)
 array<byte> WordToByte(array<uint> input)
 {
 	array<uint> x = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-	int i;
 
-	for (i = 0; i < 16; i += 1)
+	for (int i = 0; i < 16; i += 1)
 		x[i] = input[i];
 		
-	for (i = 20; i > 0; i -= 2)
+	for (int i = 20; i > 0; i -= 2)
 	{
 		x[ 4] = x[ 4] ^ Rotate(x[ 0] + x[12], 7);
 		x[ 8] = x[ 8] ^ Rotate(x[ 4] + x[ 0], 9);
@@ -131,7 +130,7 @@ array<byte> WordToByte(array<uint> input)
 	
 	array<byte> result = [];
 	
-	for (i = 0; i < 16; i += 1)
+	for (int i = 0; i < 16; i += 1)
 	{
 		var v = x[i] + input[i];
 		result += [v as byte, (v >> 8) as byte, (v >> 16) as byte, (v >> 24) as byte];
