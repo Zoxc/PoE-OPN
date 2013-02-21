@@ -561,8 +561,9 @@ message UseWorldObject
 {
     byte Id;
 	uint ObjectId;
-	PoE.Unknown[3] u0;
+	PoE.Skill Skill;
 	ushort ActionId;
+    byte u0;
 }
 
 message UseOnLocation
