@@ -134,7 +134,7 @@ message RequestServerInfo
 
 message ServerInfo
 {
-    byte Id;
+	byte Id;
 	PoE.Hash u0;
 	String Server;
 	String BackupServer;
@@ -142,7 +142,7 @@ message ServerInfo
 
 message RequestFolderList
 {
-    byte Id;
+	byte Id;
 	String FolderName;
 }
 
@@ -161,7 +161,7 @@ type FolderListEntry
 
 message FolderList
 {
-    byte Id;
+	byte Id;
 	String FolderName;
 	uint FileCount;
 	array<FolderListEntry> Entries with BinaryEncoding{Length = FileCount};
@@ -169,17 +169,17 @@ message FolderList
 
 message RequestPatchNotes
 {
-    byte Id;
+	byte Id;
 }
 
 message PatchNotes
 {
-    byte Id;
+	byte Id;
 	String NotesURL;
 }
 
 message UnknownPacket
 {
-    byte Id;
+	byte Id;
 }
 

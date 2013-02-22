@@ -214,16 +214,19 @@ pattern StatusType = enum byte
 
 message KeyExchange
 {
-    byte Id;
+	byte Id;
 	binary PublicKey with BinaryEncoding{Length = 128};
 }
 
 message LoginRequest
 {
-    byte Id;
+	byte Id;
 	PoE.Unknown[4] u0;
 	PoE.String Account;
 	PasswordHash Password;
+	PoE.Hash MAC; // SHA-256'd MAC address
+	bool SavePassword;
+	bool UsingSavedPassword;
 }
 
 type Character
@@ -251,35 +254,37 @@ type LoginCharacterList
 
 message LoginRequestResult
 {
-    byte Id;
+	byte Id;
 	StatusType Status;
-	PoE.Unknown[36] u0;
+	PoE.Hash ClientExecutableHash;
+	PasswordHash StorablePasswordHash;
+	uint u2;
 	optional [|Status == StatusType.ActionSuccessful|] LoginCharacterList Characters;
 }
 
 message ChangePasswordRequest
 {
-    byte Id;
+	byte Id;
 	PasswordHash OldPassword;
 	PasswordHash NewPassword;
 }
 
 message ChangePasswordResult
 {
-    byte Id;
+	byte Id;
 	StatusType Status;
 	PoE.Unknown[4] u0;
 }
 
 message DeleteCharacterRequest
 {
-    byte Id;
+	byte Id;
 	PoE.String Character; 
 }
 
 message LeagueUpdate
 {
-    byte Id;
+	byte Id;
 	StatusType Status;
 	PoE.Unknown[4] u0;
 	optional [|Status == StatusType.ActionSuccessful|] CharacterList Characters;
@@ -287,13 +292,13 @@ message LeagueUpdate
 
 message PlayRequest
 {
-    byte Id;
+	byte Id;
 	PoE.String Character; 
 }
 
 message CreateCharRequest
 {
-    byte Id;
+	byte Id;
 	PoE.String Name;
 	PoE.String League;
 	PoE.Unknown[11] u0;
@@ -303,7 +308,7 @@ message CreateCharRequest
 
 message GameServerData
 {
-    byte Id;
+	byte Id;
 	uint ConnectionId;
 	PoE.Unknown[7] u0;
 	PoE.GameServerInfo GameServer;
@@ -311,13 +316,13 @@ message GameServerData
 
 message Unknown0
 {
-    byte Id;
+	byte Id;
 	byte u0;
 }
 
 message RequestLeagueInfo
 {
-    byte Id;
+	byte Id;
 }
 
 type League
@@ -332,13 +337,13 @@ type League
 
 message LeagueInfo
 {
-    byte Id;
+	byte Id;
 	uint LeagueCount;
 	array<League> Leagues with BinaryEncoding{Length = LeagueCount};
 }
 
 message UnknownPacket
 {
-    byte Id;
+	byte Id;
 }
 

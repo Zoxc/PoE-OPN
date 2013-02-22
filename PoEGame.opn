@@ -479,14 +479,14 @@ autostart actor ServerOverTCP(VirtualTransport.Server server)
 
 message EnterRequest
 {
-    byte Id;
+	byte Id;
 	PoE.String Character;
 	uint ConnectionId;
 }
 
 message LinkItem
 {
-    byte Id;
+	byte Id;
 	uint ItemLinkId;
 	uint u0;
 	uint ItemId;
@@ -495,7 +495,7 @@ message LinkItem
 
 message SendChat
 {
-    byte Id;
+	byte Id;
     PoE.String Message;
 	byte ItemCount;
 	array<uint> ItemLinkIds with BinaryEncoding{Length = ItemCount};
@@ -510,7 +510,7 @@ type LinkedItem
 
 message ReceiveChat
 {
-    byte Id;
+	byte Id;
     PoE.String Character;
     PoE.String Message;
 	byte u0;
@@ -520,18 +520,18 @@ message ReceiveChat
 
 message Exit
 {
-    byte Id;
+	byte Id;
     byte u0;
 }
 
 message Ping
 {
-    byte Id;
+	byte Id;
 }
 
 message Unknown0
 {
-    byte Id;
+	byte Id;
 	ushort Count;
 	array<ushort> u0 with BinaryEncoding{Length = Count};
 	array<byte> u1 with BinaryEncoding{Length = Count};
@@ -539,7 +539,7 @@ message Unknown0
 
 message LoadComplete
 {
-    byte Id;
+	byte Id;
 	uint TileHash;
 	uint DoodadHash;
 }
@@ -559,7 +559,7 @@ message MapParameters
 
 message UseWorldObject
 {
-    byte Id;
+	byte Id;
 	uint ObjectId;
 	PoE.Skill Skill;
 	ushort ActionId;
@@ -568,7 +568,7 @@ message UseWorldObject
 
 message UseOnLocation
 {
-    byte Id;
+	byte Id;
 	uint X;
 	uint Y;
 	PoE.Skill Skill;
@@ -578,7 +578,7 @@ message UseOnLocation
 
 message NewGameServer
 {
-    byte Id;
+	byte Id;
 	uint ConnectionId;
 	PoE.Unknown[11] u0;
 	PoE.GameServerInfo GameServer;
@@ -603,19 +603,19 @@ pattern ItemContainer = enum uint
 
 message PickItem
 {
-    byte Id;
+	byte Id;
 	uint ItemId;
 	ItemContainer Container;
 }
 
 message DropItem
 {
-    byte Id;
+	byte Id;
 }
 
 message PlaceItem
 {
-    byte Id;
+	byte Id;
 	ItemContainer Container;
 	uint X;
 	uint Y;
@@ -623,7 +623,7 @@ message PlaceItem
 
 message PickSocket
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint u1;
 	uint u2;
@@ -631,7 +631,7 @@ message PickSocket
 
 message PlaceSocket
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint u1;
 	uint u2;
@@ -639,7 +639,7 @@ message PlaceSocket
 
 message PassivePoints
 {
-    byte Id;
+	byte Id;
 	ushort NodeCount;
 	array<PoE.ushortLE> Nodes with BinaryEncoding{Length = NodeCount};
 	PoE.Unknown[6] u0;
@@ -647,50 +647,50 @@ message PassivePoints
 
 message SpendPassivePoint
 {
-    byte Id;
+	byte Id;
 	ushort u0;
 	ushort Node;
 }
 
 message EquipSkill
 {
-    byte Id;
+	byte Id;
 	PoE.SkillSlot Slot;
 	PoE.SkillLE Skill;
 }
 
 message AssignedSkills
 {
-    byte Id;
+	byte Id;
 	array<PoE.Skill> Skills with BinaryEncoding{Length = 8};
 }
 
 message Revive
 {
-    byte Id;
+	byte Id;
 }
 
 message YouDied
 {
-    byte Id;
+	byte Id;
 }
 
 message UseObject
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint u1;
 }
 
 message UsePotObject
 {
-    byte Id;
+	byte Id;
 	uint PotIndex;
 }
 
 message UseItemOnItem
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint u1;
 	uint u2;
@@ -699,25 +699,25 @@ message UseItemOnItem
 
 message JoinParty
 {
-    byte Id;
+	byte Id;
 	uint PartyId;
 }
 
 message LeaveParty
 {
-    byte Id;
+	byte Id;
 	uint PartyId;
 }
 
 message UpdatePublicParty
 {
-    byte Id;
+	byte Id;
 	PoE.String PartyName;
 }
 
 message RequestPartyDetails
 {
-    byte Id;
+	byte Id;
 	uint PartyId;
 }
 
@@ -733,7 +733,7 @@ type CharacterInfo
 
 message PlayerUpdate
 {
-    byte Id;
+	byte Id;
 	PoE.String Account;
 	PoE.String Message;
     bool Online;
@@ -742,7 +742,7 @@ message PlayerUpdate
 
 message PlayerLeftParty
 {
-    byte Id;
+	byte Id;
 	PoE.String Character;
 }
 
@@ -760,7 +760,7 @@ type PartyPlayer
 
 message PartyDetails
 {
-    byte Id;
+	byte Id;
 	Party Party;
     byte u0;
     byte PlayerCount;
@@ -769,13 +769,13 @@ message PartyDetails
 
 message LeftParty
 {
-    byte Id;
+	byte Id;
 	uint PartyId;
 }
 
 message RequestPartyList
 {
-    byte Id;
+	byte Id;
 }
 
 type PartyListEntry
@@ -786,20 +786,20 @@ type PartyListEntry
 
 message PartyList
 {
-    byte Id;
+	byte Id;
 	ushort PartyCount;
 	array<PartyListEntry> Parties with BinaryEncoding{Length = PartyCount};
 }
 
 message CloseSellMenu
 {
-    byte Id;
+	byte Id;
 	uint u0;
 }
 
 message StageItemForSelling
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint ItemId;
 	ushort u2;
@@ -807,104 +807,104 @@ message StageItemForSelling
 
 message UnstageItemForSelling
 {
-    byte Id;
+	byte Id;
 	uint ItemId;
 }
 
 message SellItems
 {
-    byte Id;
+	byte Id;
 	byte u0;
 	uint u1;
 }
 
 message ShopUpdate
 {
-    byte Id;
+	byte Id;
 	PoE.Unknown[16] u0;
 	PoE.String Shopkeeper;
 }
 
 message SellMenuClosed
 {
-    byte Id;
+	byte Id;
 	PoE.Unknown[5] u0;
 }
 
 message InventoryUpdate
 {
-    byte Id;
+	byte Id;
 }
 
 message NewInventory
 {
-    byte Id;
+	byte Id;
 }
 
 message SelectStashTab
 {
-    byte Id;
+	byte Id;
 	byte u0;
     byte TabIndex;
 }
 
 message Friend
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	PoE.String Account;
 }
 
 message UseWeaponSet
 {
-    byte Id;
+	byte Id;
 	bool Primary;
 }
 
 message UseWeaponSetAck
 {
-    byte Id;
+	byte Id;
 	bool Primary;
 }
 
 message QueuedForMatch
 {
-    byte Id;
+	byte Id;
     byte u0;
 	PoE.String Match;
 }
 
 message CancelledMatchQueue
 {
-    byte Id;
+	byte Id;
 }
 
 message CancelMatchQueue
 {
-    byte Id;
+	byte Id;
 }
 
 message NPCInteract
 {
-    byte Id;
+	byte Id;
     byte MenuIndex;
 }
 
 message NPCMenuOpened
 {
-    byte Id;
+	byte Id;
 	uint MenuId;
 	byte u0;
 }
 
 message CloseNPCMenu
 {
-    byte Id;
+	byte Id;
 }
 
 message BuyItem
 {
-    byte Id;
+	byte Id;
 	PoE.Unknown[17] u0;
 }
 
@@ -919,20 +919,20 @@ type Match
 
 message MatchList
 {
-    byte Id;
+	byte Id;
 	ushort MatchCount;
 	array<Match> Matches with BinaryEncoding{Length = MatchCount};
 }
 
 message QueueMatch
 {
-    byte Id;
+	byte Id;
 	ushort MatchIndex;
 }
 
 message ObjectAdd
 {
-    byte Id;
+	byte Id;
 	uint u0;
 	uint ObjectId;
 }
@@ -952,7 +952,7 @@ type ObjectUseOnLocation
 
 message ObjectUpdate
 {
-    byte Id;
+	byte Id;
 	uint ObjectId;
 	ushort UpdateType;
 	optional [|UpdateType == 0x701|] ObjectUseOnLocation ObjectUseOnLocation;
@@ -960,11 +960,11 @@ message ObjectUpdate
 
 message ObjectRemove
 {
-    byte Id;
+	byte Id;
 	uint ObjectId;
 }
 
 message UnknownPacket
 {
-    byte Id;
+	byte Id;
 }
