@@ -29,6 +29,7 @@ endpoint Server
 	issues ChangePasswordResult
 	issues LeagueUpdate
 	issues GameServerData
+	issues CharacterList
 	issues Unknown0
 	issues LeagueInfo
 	issues UnknownPacket;
@@ -103,6 +104,11 @@ endpoint DecodeNode[any endpoint server]
 				var mf = m as GameServerData;
 				PoE.EncryptionKeys[mf.ConnectionId] = mf.GameServer.EncryptionKey;
 				mf.GameServer.Declare();
+				return m as any message;
+			case 13 =>
+				var m = BinaryDecoder<CharacterList>(s);
+				if(m == nothing)
+					return null;
 				return m as any message;
 			case 14 =>
 				var m = BinaryDecoder<Unknown0>(s);
@@ -229,29 +235,6 @@ message LoginRequest
 	bool UsingSavedPassword;
 }
 
-type Character
-{
-	PoE.String Name;
-	PoE.String League;
-	PoE.Unknown[7] u0;
-	byte Level;
-	PoE.Unknown[4] u1;
-	PoE.Class Class;
-}
-
-type CharacterList
-{
-	byte CharacterCount;
-	array<Character> Characters with BinaryEncoding{Length = CharacterCount};
-}
-
-type LoginCharacterList
-{
-	PoE.Unknown[4] u0;
-	CharacterList Characters;
-	PoE.Unknown[4] u1;
-}
-
 message LoginRequestResult
 {
 	byte Id;
@@ -259,7 +242,6 @@ message LoginRequestResult
 	PoE.Hash ClientExecutableHash;
 	PasswordHash StorablePasswordHash;
 	uint u2;
-	optional [|Status == StatusType.ActionSuccessful|] LoginCharacterList Characters;
 }
 
 message ChangePasswordRequest
@@ -286,8 +268,6 @@ message LeagueUpdate
 {
 	byte Id;
 	StatusType Status;
-	PoE.Unknown[4] u0;
-	optional [|Status == StatusType.ActionSuccessful|] CharacterList Characters;
 }
 
 message PlayRequest
@@ -312,6 +292,24 @@ message GameServerData
 	uint ConnectionId;
 	PoE.Unknown[7] u0;
 	PoE.GameServerInfo GameServer;
+}
+
+type Character
+{
+	PoE.String Name;
+	PoE.String League;
+	PoE.Unknown[7] u0;
+	byte Level;
+	PoE.Unknown[4] u1;
+	PoE.Class Class;
+}
+
+message CharacterList
+{
+	byte Id;
+	uint CharacterCount;
+	array<Character> Characters with BinaryEncoding{Length = CharacterCount};
+	uint u1;
 }
 
 message Unknown0
